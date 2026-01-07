@@ -1,0 +1,419 @@
+/* =========================================================
+   Global Science Olympiad Styling
+   ========================================================= */
+
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --border: #d9dde3;
+  --border-soft: #e6e9ef;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --success: #15803d;
+}
+
+/* ---------- Base ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+}
+
+/* ---------- Page Layout ---------- */
+
+.page {
+  max-width: 1100px;
+  margin: 24px auto 48px;
+  padding: 0 20px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* ---------- Problem Statement ---------- */
+
+.problem {
+  font-size: 1.05rem;
+}
+
+.problem .units {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- Inputs ---------- */
+
+input[type="text"],
+input[type="number"] {
+  font-size: 0.95rem;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 110px;
+  background: white;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* ---------- Buttons ---------- */
+
+button {
+  font-size: 0.95rem;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+button:hover {
+  filter: brightness(0.97);
+}
+
+/* =========================================================
+   Railroad Work
+   ========================================================= */
+
+.railroad {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+}
+
+/* ---------- Steps (Subtle Rows, Not Boxes) ---------- */
+
+.railroad-steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.railroad-step {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.railroad-step:last-child {
+  border-bottom: none;
+}
+
+/* ---------- Units + Cancellation Animation ---------- */
+
+.unit {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 500;
+  transition:
+    color 0.18s ease,
+    opacity 0.18s ease,
+    text-decoration-color 0.18s ease;
+}
+
+.unit.cancelled {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: #9ca3af;
+  color: #9ca3af;
+  opacity: 0.75;
+}
+
+/* Optional: tiny visual "settle" when cancellation happens */
+.unit.cancelled {
+  animation: cancelFade 0.15s ease-out;
+}
+
+@keyframes cancelFade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.75;
+  }
+}
+
+/* ---------- Remaining Units Box ---------- */
+
+.remaining-units {
+  background: #f9fafb;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.remaining-units h3 {
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.remaining-units .value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+/* ---------- Final Answer ---------- */
+
+.final-answer {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+}
+
+.final-answer strong {
+  font-size: 1.05rem;
+}
+
+/* =========================================================
+   Utility
+   ========================================================= */
+
+.muted {
+  color: var(--muted);
+}
+
+/* =========================
+   Test Mode Timer Bar
+   ========================= */
+
+.test-timer-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 14px 18px;
+  margin-bottom: 18px;
+
+  background: rgba(12, 12, 12, 0.95);
+  backdrop-filter: blur(8px);
+
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+}
+
+/* Left text */
+.test-timer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.test-timer-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.test-timer-subtitle {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* Big timer */
+.test-timer-clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+
+  padding: 6px 16px;
+  min-width: 150px;
+  text-align: center;
+
+  /* ✅ KEY FIXES */
+  color: #ffffff;                         /* white digits */
+  background: rgba(255, 255, 255, 0.12);  /* light translucent bg */
+  border: 2px solid rgba(255, 255, 255, 0.35);
+
+  border-radius: 12px;
+}
+
+
+/* When time is low */
+.test-timer-clock.warning {
+  color: #ffcc00;
+}
+
+.test-timer-clock.danger {
+  color: #ff5c5c;
+  border-color: #ff5c5c;
+}
+
+/* Submit button */
+.test-submit-btn {
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 800;
+
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  cursor: pointer;
+}
+
+.test-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.test-timer-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 14px 18px;
+  margin-bottom: 18px;
+
+  /* ✅ ensure readable text */
+  color: #fff;
+
+  /* keep your dark look but not pure black */
+  background: rgba(24, 24, 24, 0.96);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+/* Make sure these don't inherit a dark override */
+.test-timer-title {
+  color: inherit;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.test-timer-subtitle {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+}
+
+/* If you have links/chips inside the bar later */
+.test-timer-bar a {
+  color: inherit;
+}
+
+.test-timer-clock {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.32);
+}
+
+.controlsCard{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controlsTitle{
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.controlRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.controlRow input[type="checkbox"]{
+  width: 16px;
+  height: 16px;
+}
+
+.controlsCard{
+  font-size: 13px; /* overall smaller text */
+}
+
+.controlsTitle{
+  font-size: 11px;   /* smaller + subtle */
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.controlRow{
+  font-size: 13px;
+}
+
+.controlRow input[type="checkbox"]{
+  width: 14px;
+  height: 14px;
+}
+
+.controlsCard{
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.controlsCard{
+  border: 1.5px solid gray; /* clearer rounded rectangle */
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);        /* very subtle fill */
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+
