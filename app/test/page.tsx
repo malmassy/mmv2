@@ -104,8 +104,13 @@ function TestSetupPage() {
     router.push(url);
 
     // If for some reason router doesn't update, force it after a tick
+    // Check if pathname ends with /test (accounting for basePath like /mmv2/test)
     setTimeout(() => {
-      if (window.location.pathname !== '/test') {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      // Check if we're on the test page - pathname should end with /test
+      // and search should contain the cfg parameter if navigating with it
+      if (!pathname.endsWith('/test') || (url.includes('cfg=') && !search.includes('cfg='))) {
         console.warn('[TestSetup] router.push did not navigate; forcing location.href');
         window.location.href = url;
       }

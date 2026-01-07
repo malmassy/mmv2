@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // This script generates a 404.html file for GitHub Pages
-// For client-side routing with basePath, we copy index.html to 404.html
-// so GitHub Pages serves the app for all routes and the client router handles navigation
+// For client-side routing with basePath, we need to handle routes properly
+// GitHub Pages serves 404.html for missing routes, which should load the app
 
 const basePath = '/mmv2';
 const outDir = path.join(__dirname, '..', 'out');
@@ -31,10 +31,26 @@ if (!fs.existsSync(indexHtmlPath)) {
 
 const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
 
-// For GitHub Pages with basePath, when a route like /mmv2/test?cfg=... is accessed
-// and the file doesn't exist, GitHub Pages serves 404.html from the root of the served directory
-// Since we're serving from 'out/', we need 404.html at 'out/404.html'
-// We copy index.html to 404.html so the app loads and the client router handles the routing
+// Also ensure test route exists - Next.js should generate it, but let's verify
+const testHtmlPath = path.join(basePathDir, 'test', 'index.html');
+const testHtmlPath2 = path.join(basePathDir, 'test.html');
+
+if (!fs.existsSync(testHtmlPath) && !fs.existsSync(testHtmlPath2)) {
+  console.warn('Warning: test route not found at', testHtmlPath, 'or', testHtmlPath2);
+  console.warn('Next.js might not have generated the test route - this is OK, 404.html will handle it');
+}
+
+// For GitHub Pages with basePath:
+// When accessing /mmv2/test?cfg=..., if the file doesn't exist, GitHub Pages serves 404.html
+// We copy index.html to 404.html so the app loads directly and the client router handles navigation
+// No redirect needed - just serve the app directly
 const html404Path = path.join(outDir, '404.html');
 fs.writeFileSync(html404Path, indexHtml, 'utf8');
 console.log('Generated 404.html at', html404Path);
+
+// Also copy index.html to 404.html in the basePath directory as a fallback
+if (fs.existsSync(basePathDir)) {
+  const basePath404Path = path.join(basePathDir, '404.html');
+  fs.writeFileSync(basePath404Path, indexHtml, 'utf8');
+  console.log('Generated 404.html at', basePath404Path);
+}
