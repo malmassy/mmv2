@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/generate-404.js",
     "start": "next start",
     "lint": "eslint",
-    "export": "next build"
+    "export": "next build && node scripts/generate-404.js"
   },
   "dependencies": {
     "next": "16.1.1",

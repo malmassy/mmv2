@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/mmv2', // Required for GitHub Pages subpath deployment
+  // Only use basePath in production builds (for GitHub Pages deployment)
+  // In development, the app will be available at root (localhost:3000/)
+  basePath: process.env.NODE_ENV === 'production' ? '/mmv2' : '',
   images: {
     unoptimized: true, // Required for static export
   },
