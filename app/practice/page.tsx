@@ -39,20 +39,32 @@ export default function PracticePage() {
   function newQuestion(nextSubtypeId?: string) {
     const sid = nextSubtypeId ?? subtypeId;
     const subtype = SUBTYPE_BY_ID[sid];
-    const q = subtype.generate();
-
-    setQuestion(q);
-    setAnswer('');
-    setResult(null);
-    setWorkSteps([]);
-    setQuestionStartTime(Date.now());
     
-    // Reset algorithm inputs when new question is generated
-    if (q.subtype === 'conversion.basic' && q.meta) {
-      setAlgorithmInputPrefixExp('');
-      setAlgorithmOutputPrefixExp('');
-      setAlgorithmPower('');
-      setAlgorithmValueExp('');
+    if (!subtype) {
+      console.error('[PracticePage] Subtype not found:', sid, {
+        available: Object.keys(SUBTYPE_BY_ID),
+        subtypes: subtypes.length,
+      });
+      return;
+    }
+    
+    try {
+      const q = subtype.generate();
+      setQuestion(q);
+      setAnswer('');
+      setResult(null);
+      setWorkSteps([]);
+      setQuestionStartTime(Date.now());
+      
+      // Reset algorithm inputs when new question is generated
+      if (q.subtype === 'conversion.basic' && q.meta) {
+        setAlgorithmInputPrefixExp('');
+        setAlgorithmOutputPrefixExp('');
+        setAlgorithmPower('');
+        setAlgorithmValueExp('');
+      }
+    } catch (error) {
+      console.error('[PracticePage] Error generating question:', error);
     }
   }
 
@@ -96,10 +108,23 @@ export default function PracticePage() {
 
   useEffect(() => {
     if (didInitRef.current) return;
+    if (subtypes.length === 0) {
+      console.warn('[PracticePage] Subtypes not loaded yet, waiting...', {
+        subtypesCount: subtypes.length,
+        SUBTYPE_BY_ID_keys: Object.keys(SUBTYPE_BY_ID),
+      });
+      return;
+    }
+    if (!defaultSubtypeId || !SUBTYPE_BY_ID[defaultSubtypeId]) {
+      console.error('[PracticePage] Invalid defaultSubtypeId:', defaultSubtypeId, {
+        available: Object.keys(SUBTYPE_BY_ID),
+      });
+      return;
+    }
     didInitRef.current = true;
     newQuestion(defaultSubtypeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [subtypes, defaultSubtypeId]);
 
   // ---------- Railroad display logic ----------
   // Prefer an explicit subtype flag if you add it (recommended):

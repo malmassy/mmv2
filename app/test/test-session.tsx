@@ -191,11 +191,16 @@ export default function TestSession({ config }: Props) {
   useEffect(() => {
     // When a new config is provided via URL, always generate a new test
     // Clear any existing localStorage to ensure fresh start
-    localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     
     // Ensure subtypes are loaded before generating questions
     if (subtypes.length === 0) {
-      console.warn('[TestSession] No subtypes available yet, waiting...');
+      console.warn('[TestSession] No subtypes available yet, waiting...', {
+        subtypesCount: subtypes.length,
+        SUBTYPE_BY_ID_keys: Object.keys(SUBTYPE_BY_ID),
+      });
       return;
     }
     
@@ -227,12 +232,19 @@ export default function TestSession({ config }: Props) {
     // First, fulfill specific counts
     for (const { id: subtypeId, count } of subtypeTargets) {
       const st = SUBTYPE_BY_ID[subtypeId];
-      if (!st) continue;
+      if (!st) {
+        console.warn('[TestSession] Subtype not found:', subtypeId);
+        continue;
+      }
       
-      for (let i = 0; i < count; i++) {
-        const q = st.generate();
-        qs.push(q);
-        counts[subtypeId] = (counts[subtypeId] ?? 0) + 1;
+      try {
+        for (let i = 0; i < count; i++) {
+          const q = st.generate();
+          qs.push(q);
+          counts[subtypeId] = (counts[subtypeId] ?? 0) + 1;
+        }
+      } catch (error) {
+        console.error('[TestSession] Error generating question for subtype:', subtypeId, error);
       }
     }
 
@@ -264,11 +276,18 @@ export default function TestSession({ config }: Props) {
       if (targetCount !== null && currentCount >= targetCount) continue;
 
       const st = SUBTYPE_BY_ID[subtypeId];
-      if (!st) continue;
+      if (!st) {
+        console.warn('[TestSession] Subtype not found:', subtypeId);
+        continue;
+      }
 
-      const q = st.generate();
-      qs.push(q);
-      counts[subtypeId] = currentCount + 1;
+      try {
+        const q = st.generate();
+        qs.push(q);
+        counts[subtypeId] = currentCount + 1;
+      } catch (error) {
+        console.error('[TestSession] Error generating question for subtype:', subtypeId, error);
+      }
     }
 
     // If we still haven't filled, fill with any subtype (fallback)
@@ -277,7 +296,12 @@ export default function TestSession({ config }: Props) {
         const chosen = subtypes[randInt(0, subtypes.length - 1)];
         const st = SUBTYPE_BY_ID[chosen.id];
         if (st) {
-          qs.push(st.generate());
+          try {
+            qs.push(st.generate());
+          } catch (error) {
+            console.error('[TestSession] Error generating question for subtype:', chosen.id, error);
+            break;
+          }
         } else {
           // Safety: if we can't generate more, break to avoid infinite loop
           console.warn('[TestSession] Could not generate question for subtype:', chosen.id);
