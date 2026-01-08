@@ -7,40 +7,14 @@ import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';
 import { makeId } from '../../utils/id';
 
 type UnitDef = { name: string; label: string };
+import { PREFIXES } from '../../utils/prefixes';
+
 type PrefixDef = { symbol: string; factor: number };
 
-const BASE_UNITS: UnitDef[] = [
+const BASE_UNITS_LIST: UnitDef[] = [
   { name: 'm', label: 'meters' },
   { name: 'g', label: 'grams' },
   { name: 'L', label: 'liters' },
-];
-
-const PREFIXES: PrefixDef[] = [
-  { symbol: 'Q', factor: 1e30 },
-  { symbol: 'R', factor: 1e27 },
-  { symbol: 'Y', factor: 1e24 },
-  { symbol: 'Z', factor: 1e21 },
-  { symbol: 'E', factor: 1e18 },
-  { symbol: 'P', factor: 1e15 },
-  { symbol: 'T', factor: 1e12 },
-  { symbol: 'G', factor: 1e9 },
-  { symbol: 'M', factor: 1e6 },
-  { symbol: 'k', factor: 1e3 },
-  { symbol: 'h', factor: 1e2 },
-  { symbol: 'da', factor: 1e1 },
-  { symbol: '', factor: 1e0 },
-  { symbol: 'd', factor: 1e-1 },
-  { symbol: 'c', factor: 1e-2 },
-  { symbol: 'm', factor: 1e-3 },
-  { symbol: 'µ', factor: 1e-6 },
-  { symbol: 'n', factor: 1e-9 },
-  { symbol: 'p', factor: 1e-12 },
-  { symbol: 'f', factor: 1e-15 },
-  { symbol: 'a', factor: 1e-18 },
-  { symbol: 'z', factor: 1e-21 },
-  { symbol: 'y', factor: 1e-24 },
-  { symbol: 'r', factor: 1e-27 },
-  { symbol: 'q', factor: 1e-30 },
 ];
 
 function randInt(min: number, max: number) {
@@ -127,7 +101,7 @@ export const basic: QuestionSubtype = {
   conversionType: 'ratio',
 
   generate: () => {
-    const unit = pick(BASE_UNITS);
+    const unit = pick(BASE_UNITS_LIST);
 
     // Only meters get squared/cubed here (area/volume). Others stay linear.
     const power = unit.name === 'm' ? pick([1, 2, 3]) : 1;
@@ -240,13 +214,26 @@ export const basic: QuestionSubtype = {
       };
     }
 
-    // 3) If units are provided and recognized, convert student answer into the TARGET unit.
-    //    If no units provided, assume numeric is already in the target unit.
-    let submittedInTarget = n;
-
+    // 3) Unit check: if enforceUnits is true, require units. Otherwise, do soft check if units are provided.
     // We still use parseQuantityLoose to detect whether the student included units,
     // but we DO NOT trust its valueInBase for squared/cubed units—so we recompute.
     const parsed = parseQuantityLoose(submittedAnswer, n);
+
+    if (opts.enforceUnits) {
+      // Strict unit enforcement: require units
+      if (!parsed.unitRaw) {
+        return {
+          isCorrect: false,
+          score: 0,
+          feedback: `Units are required. This question asks for ${targetUnit}.`,
+          correctAnswerDisplay: `${correctNice} ${targetUnit}`,
+        };
+      }
+    }
+
+    // 4) If units are provided and recognized, convert student answer into the TARGET unit.
+    //    If no units provided, assume numeric is already in the target unit.
+    let submittedInTarget = n;
 
     if (parsed.unitRaw) {
       const studentInfo = parseMetricUnitWithPower(parsed.unitRaw);
@@ -254,7 +241,7 @@ export const basic: QuestionSubtype = {
         return {
           isCorrect: false,
           score: 0,
-          feedback: `I couldn’t understand the unit "${parsed.unitRaw}". This question asks for ${targetUnit}.`,
+          feedback: `I couldn't understand the unit "${parsed.unitRaw}". This question asks for ${targetUnit}.`,
           correctAnswerDisplay: `${correctNice} ${targetUnit}`,
         };
       }
@@ -274,7 +261,7 @@ export const basic: QuestionSubtype = {
       submittedInTarget = valueInBasePow / targetInfo.factorToBasePow;
     }
 
-    // 4) Grade numeric equivalence
+    // 5) Grade numeric equivalence
     const ok = withinTolerance(submittedInTarget, correct, { rel: 1e-9, abs: 1e-10 });
 
     return {

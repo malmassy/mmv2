@@ -19,6 +19,18 @@ function newStep(): RailroadStep {
 }
 
 /**
+ * Convert a number to superscript
+ */
+function toSuperscript(num: number): string {
+  const superscripts: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '-': '⁻', '+': '⁺'
+  };
+  return String(num).split('').map(char => superscripts[char] || char).join('');
+}
+
+/**
  * --- Unit parsing rules (MVP but useful) ---
  * We parse the "unit part" of a cell like:
  *   "100 cm" => units: cm
@@ -289,7 +301,7 @@ function formatUnitMap(net: Map<string, number>) {
   const entries = Array.from(net.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   for (const [u, e] of entries) {
     const abs = Math.abs(e);
-    const piece = abs === 1 ? u : `${u}^${abs}`;
+    const piece = abs === 1 ? u : `${u}${toSuperscript(abs)}`;
     if (e > 0) num.push(piece);
     else den.push(piece);
   }
@@ -368,7 +380,7 @@ export default function RailroadWork({ steps, onChange, showUnitsHint }: Props) 
       for (const occ of topOccs) {
         const n = Math.abs(occ.exp);
         if (n > 6) {
-          topExpanded.push({ unit: `${occ.unit}^${occ.exp}`, strike: false, rawExp: occ.exp });
+          topExpanded.push({ unit: `${occ.unit}${toSuperscript(occ.exp)}`, strike: false, rawExp: occ.exp });
           continue;
         }
         const sign: 1 | -1 = occ.exp >= 0 ? 1 : -1;
@@ -385,7 +397,7 @@ export default function RailroadWork({ steps, onChange, showUnitsHint }: Props) 
         const n = Math.abs(occ.exp);
         const flippedExp = -occ.exp; // because bottom is divisor
         if (n > 6) {
-          botExpanded.push({ unit: `${occ.unit}^${flippedExp}`, strike: false, rawExp: flippedExp });
+          botExpanded.push({ unit: `${occ.unit}${toSuperscript(flippedExp)}`, strike: false, rawExp: flippedExp });
           continue;
         }
         const sign: 1 | -1 = flippedExp >= 0 ? 1 : -1;
@@ -400,6 +412,49 @@ export default function RailroadWork({ steps, onChange, showUnitsHint }: Props) 
 
     return perStep;
   }, [steps, shouldStrike]);
+
+  // Helper to format expanded units compactly (e.g., ["m","m","m"] -> "m³")
+  // Groups consecutive units with the same unit name and strike status
+  const formatUnitsCompactly = useCallback((expanded: { unit: string; strike: boolean; rawExp: number }[]) => {
+    if (expanded.length === 0) return [];
+    
+    const result: { text: string; strike: boolean }[] = [];
+    let currentUnit: string | null = null;
+    let currentStrike: boolean | null = null;
+    let currentRawExp: number | null = null;
+    let count = 0;
+    
+    for (const item of expanded) {
+      // Check if this item continues the current group
+      // Group by unit name, strike status, and rawExp (original exponent)
+      const isSameGroup = item.unit === currentUnit && 
+                          item.strike === currentStrike && 
+                          item.rawExp === currentRawExp;
+      
+      if (isSameGroup) {
+        count++;
+      } else {
+        // Output previous group
+        if (currentUnit !== null && count > 0) {
+          const displayText = count === 1 ? currentUnit : `${currentUnit}${toSuperscript(count)}`;
+          result.push({ text: displayText, strike: currentStrike ?? false });
+        }
+        // Start new group
+        currentUnit = item.unit;
+        currentStrike = item.strike;
+        currentRawExp = item.rawExp;
+        count = 1;
+      }
+    }
+    
+    // Output final group
+    if (currentUnit !== null && count > 0) {
+      const displayText = count === 1 ? currentUnit : `${currentUnit}${toSuperscript(count)}`;
+      result.push({ text: displayText, strike: currentStrike ?? false });
+    }
+    
+    return result;
+  }, []);
 
   return (
     <section style={{ border: '1px solid #ddd', borderRadius: 10, padding: 14 }}>
@@ -468,10 +523,10 @@ export default function RailroadWork({ steps, onChange, showUnitsHint }: Props) 
                     ) : (
                       <span>
                         units:{' '}
-                        {topExpanded.map((t, i) => (
+                        {formatUnitsCompactly(topExpanded).map((t, i) => (
                           <span key={i} style={{ marginRight: 6 }}>
                             <span style={{ textDecoration: t.strike ? 'line-through' : 'none' }}>
-                              {t.unit}
+                              {t.text}
                             </span>
                           </span>
                         ))}
@@ -500,10 +555,10 @@ export default function RailroadWork({ steps, onChange, showUnitsHint }: Props) 
                     ) : (
                       <span>
                         units:{' '}
-                        {botExpanded.map((t, i) => (
+                        {formatUnitsCompactly(botExpanded).map((t, i) => (
                           <span key={i} style={{ marginRight: 6 }}>
                             <span style={{ textDecoration: t.strike ? 'line-through' : 'none' }}>
-                              {t.unit}
+                              {t.text}
                             </span>
                           </span>
                         ))}
