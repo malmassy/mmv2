@@ -24,7 +24,6 @@ export const PREFIXES: PrefixDef[] = [
   { symbol: 'c', factor: 1e-2, exponent: -2 },
   { symbol: 'm', factor: 1e-3, exponent: -3 },
   { symbol: 'µ', factor: 1e-6, exponent: -6 },
-  { symbol: 'u', factor: 1e-6, exponent: -6 },
   { symbol: 'n', factor: 1e-9, exponent: -9 },
   { symbol: 'p', factor: 1e-12, exponent: -12 },
   { symbol: 'f', factor: 1e-15, exponent: -15 },
