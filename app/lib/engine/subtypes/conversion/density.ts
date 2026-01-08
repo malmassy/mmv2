@@ -201,6 +201,7 @@ export const density: QuestionSubtype = {
     const factor = (numPrefix.factor * toDenPrefixFactorPow) / (toNumPrefix.factor * denPrefixFactorPow);
 
     // Choose realistic density value based on the from unit
+    // Use similar logic to basic conversions for cleaner values
     // Adjust range based on the from prefix to keep values reasonable
     let raw: number;
     const fromNumExp = numPrefix.exponent;
@@ -209,20 +210,29 @@ export const density: QuestionSubtype = {
     const effectiveExp = fromNumExp - (fromDenExp * 3);
     
     if (effectiveExp >= 3) {
-      // Large numbers (e.g., mg/m³)
-      raw = randInt(200000, 25000000) / randInt(1, 10);
+      // Large numbers (e.g., mg/m³) - use smaller, cleaner range
+      const magnitude = randInt(12, 950);
+      raw = magnitude / randInt(1, 5);
     } else if (effectiveExp >= 0) {
-      // Medium numbers (e.g., kg/m³, g/cm³, mg/cm³)
-      raw = randInt(200, 25000) / randInt(1, 10);
+      // Medium numbers (e.g., kg/m³, g/cm³, mg/cm³) - typical density range
+      const magnitude = randInt(12, 950);
+      raw = magnitude / randInt(1, 5);
     } else if (effectiveExp >= -3) {
       // Small numbers (e.g., g/cm³ when expressed differently)
-      raw = randInt(2, 250) / randInt(1, 10);
+      const magnitude = randInt(12, 950);
+      raw = magnitude / randInt(1, 5);
     } else {
-      // Very small numbers (e.g., kg/cm³)
-      raw = randInt(2, 250) / randInt(10000, 100000);
+      // Very small numbers (e.g., kg/cm³) - need smaller values
+      const magnitude = randInt(1, 95);
+      raw = magnitude / randInt(10, 50);
     }
 
-    const qv = quantizeMax3Decimals(raw);
+    // Use quantizeForDisplay like basic conversions for cleaner formatting
+    const abs = Math.abs(raw);
+    const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+    const display = raw.toFixed(decimals);
+    const value = Number(display);
+    const qv = { value, display, decimals };
     const requiredSigFigs = countSigFigs(qv.display) ?? 3;
 
     const correctRaw = qv.value * factor;
