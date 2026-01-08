@@ -2,9 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  // Only use basePath in production builds (for GitHub Pages deployment)
-  // In development, the app will be available at root (localhost:3000/)
-  basePath: process.env.NODE_ENV === 'production' ? '/mmv2' : '',
+  // No basePath needed - using custom domain (mm10570.com) which serves at root
+  basePath: '',
   images: {
     unoptimized: true, // Required for static export
   },

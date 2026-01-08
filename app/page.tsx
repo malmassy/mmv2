@@ -1,10 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Home() {
-  const router = useRouter();
-
   return (
     <main style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
       <h1 style={{ marginBottom: 8 }}>Metric Mastery</h1>
@@ -24,9 +22,8 @@ export default function Home() {
           <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 18 }}>Select Mode</div>
           
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => router.push('/test')}
+            <Link
+              href="/test"
               style={{
                 padding: '16px 24px',
                 borderRadius: 999,
@@ -34,6 +31,9 @@ export default function Home() {
                 cursor: 'pointer',
                 minWidth: 140,
                 fontSize: 16,
+                textDecoration: 'none',
+                textAlign: 'center',
+                display: 'inline-block',
 
                 /* Match time selector selected style */
                 backgroundColor: '#ffffff',
@@ -44,11 +44,10 @@ export default function Home() {
               }}
             >
               Test Mode
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              onClick={() => router.push('/practice')}
+            <Link
+              href="/practice"
               style={{
                 padding: '16px 24px',
                 borderRadius: 999,
@@ -56,6 +55,9 @@ export default function Home() {
                 cursor: 'pointer',
                 minWidth: 140,
                 fontSize: 16,
+                textDecoration: 'none',
+                textAlign: 'center',
+                display: 'inline-block',
 
                 /* Match time selector selected style */
                 backgroundColor: '#ffffff',
@@ -66,7 +68,7 @@ export default function Home() {
               }}
             >
               Practice Mode
-            </button>
+            </Link>
           </div>
         </div>
       </section>

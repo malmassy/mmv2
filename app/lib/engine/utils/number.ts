@@ -8,9 +8,11 @@ export function parseNumberLoose(input: string): number | null {
     .replace(/\s+/g, ' ')
     .replace(/^\+/, '');
 
-  // Handle "a x 10^b"
+  // Handle "a x 10^b" (with optional trailing text)
+  // Match up to whitespace, end of string, or a non-digit character after the exponent
+  // Don't use \b word boundary because it can be unreliable with negative numbers
   const sciMatch = normalized.match(
-    /^([+-]?\d*\.?\d+)\s*x\s*10\^?\s*([+-]?\d+)\b/
+    /^([+-]?\d*\.?\d+)\s*x\s*10\^?\s*([+-]?\d+)(?=\s|[^\d]|$)/
   );
   if (sciMatch) {
     const a = Number(sciMatch[1]);
