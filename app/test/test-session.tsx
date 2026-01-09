@@ -7,6 +7,7 @@ import type { TestSetupConfig } from './test-config';
 
 const DEFAULT_TEST_SECONDS = 10 * 60;
 const DEFAULT_TEST_QUESTION_COUNT = 5;
+const MAX_TEST_QUESTION_COUNT = 5;
 const STORAGE_KEY = 'metricmastery_test_v1';
 const SAVED_TESTS_KEY = 'metricmastery_saved_tests_v1';
 const MAX_PER_SUBTYPE = 2;
@@ -228,9 +229,39 @@ export default function TestSession({ config }: Props) {
       totalNeeded = DEFAULT_TEST_QUESTION_COUNT;
     }
 
+    // Cap total questions at maximum
+    // If specific counts exceed the max, cap them proportionally
+    if (totalNeeded > MAX_TEST_QUESTION_COUNT) {
+      const scaleFactor = MAX_TEST_QUESTION_COUNT / totalNeeded;
+      let cappedTotal = 0;
+      
+      // First pass: scale down proportionally and round down
+      for (const target of subtypeTargets) {
+        target.count = Math.floor(target.count * scaleFactor);
+        cappedTotal += target.count;
+      }
+      
+      // Second pass: distribute remaining slots (if any) to maintain fairness
+      let remaining = MAX_TEST_QUESTION_COUNT - cappedTotal;
+      let index = 0;
+      while (remaining > 0 && index < subtypeTargets.length) {
+        const originalCount = config.countsBySubtypeId[subtypeTargets[index].id];
+        if (originalCount !== null && originalCount > 0) {
+          subtypeTargets[index].count += 1;
+          cappedTotal += 1;
+          remaining -= 1;
+        }
+        index = (index + 1) % subtypeTargets.length;
+      }
+      
+      totalNeeded = MAX_TEST_QUESTION_COUNT;
+    }
+
     // Generate questions according to config
-    // First, fulfill specific counts
+    // First, fulfill specific counts (up to maximum)
     for (const { id: subtypeId, count } of subtypeTargets) {
+      if (qs.length >= MAX_TEST_QUESTION_COUNT) break; // Safety: never exceed max
+      
       const st = SUBTYPE_BY_ID[subtypeId];
       if (!st) {
         console.warn('[TestSession] Subtype not found:', subtypeId);
@@ -238,7 +269,7 @@ export default function TestSession({ config }: Props) {
       }
       
       try {
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < count && qs.length < MAX_TEST_QUESTION_COUNT; i++) {
           const q = st.generate();
           qs.push(q);
           counts[subtypeId] = (counts[subtypeId] ?? 0) + 1;
@@ -252,7 +283,10 @@ export default function TestSession({ config }: Props) {
     const maxAttempts = 500;
     let attempts = 0;
     
-    while (qs.length < totalNeeded && attempts < maxAttempts) {
+    // Cap totalNeeded to maximum
+    const actualTotalNeeded = Math.min(totalNeeded, MAX_TEST_QUESTION_COUNT);
+    
+    while (qs.length < actualTotalNeeded && attempts < maxAttempts) {
       attempts++;
       
       // Pick from subtypes that are either:
@@ -291,8 +325,9 @@ export default function TestSession({ config }: Props) {
     }
 
     // If we still haven't filled, fill with any subtype (fallback)
-    if (qs.length < totalNeeded) {
-      while (qs.length < totalNeeded) {
+    // But never exceed the maximum
+    if (qs.length < actualTotalNeeded && qs.length < MAX_TEST_QUESTION_COUNT) {
+      while (qs.length < actualTotalNeeded && qs.length < MAX_TEST_QUESTION_COUNT) {
         const chosen = subtypes[randInt(0, subtypes.length - 1)];
         const st = SUBTYPE_BY_ID[chosen.id];
         if (st) {

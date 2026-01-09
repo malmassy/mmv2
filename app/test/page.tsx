@@ -49,6 +49,17 @@ function TestSetupPage() {
   const [testId, setTestId] = useState<string>('');
   const [error, setError] = useState<string>('');
 
+  // Calculate total questions configured
+  const totalQuestions = useMemo(() => {
+    let total = 0;
+    for (const count of Object.values(countsBySubtypeId)) {
+      if (count !== null && count > 0) {
+        total += count;
+      }
+    }
+    return total;
+  }, [countsBySubtypeId]);
+
   function setRandom(subtypeId: string) {
     setCountsBySubtypeId((prev) => ({ ...prev, [subtypeId]: null }));
   }
@@ -62,7 +73,21 @@ function TestSetupPage() {
     }
     const n = Number(trimmed);
     if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) return; // ignore invalid keystrokes
-    setCountsBySubtypeId((prev) => ({ ...prev, [subtypeId]: n }));
+    
+    // Calculate current total excluding this subtype
+    let currentTotal = 0;
+    for (const [id, count] of Object.entries(countsBySubtypeId)) {
+      if (id !== subtypeId && count !== null && count > 0) {
+        currentTotal += count;
+      }
+    }
+    
+    // Cap at maximum 5 questions total
+    const MAX_QUESTIONS = 5;
+    const maxAllowed = Math.max(0, MAX_QUESTIONS - currentTotal);
+    const capped = Math.min(n, maxAllowed);
+    
+    setCountsBySubtypeId((prev) => ({ ...prev, [subtypeId]: capped }));
   }
 
   function start() {
@@ -75,6 +100,14 @@ function TestSetupPage() {
   if (!Number.isFinite(m) || m <= 0) {
     setError('Time must be a positive number of minutes.');
     console.warn('[TestSetup] Invalid minutes:', minutes);
+    return;
+  }
+
+  // Validate total questions doesn't exceed maximum
+  const MAX_QUESTIONS = 5;
+  if (totalQuestions > MAX_QUESTIONS) {
+    setError(`Maximum ${MAX_QUESTIONS} questions allowed. Currently configured: ${totalQuestions}`);
+    console.warn('[TestSetup] Too many questions:', totalQuestions);
     return;
   }
 
@@ -260,6 +293,7 @@ function TestSetupPage() {
                       onChange={(e) => setCount(s.id, e.target.value)}
                       placeholder="(random)"
                       style={{ width: 110 }}
+                      title={!isRandom && v && totalQuestions >= 5 ? `Maximum 5 questions total (currently ${totalQuestions})` : undefined}
                     />
                   </label>
                 </div>
@@ -269,6 +303,10 @@ function TestSetupPage() {
 
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>
             Leaving a subtype as <b>Random</b> means the test generator can pick it as needed.
+          </div>
+
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8, fontWeight: 600, color: totalQuestions >= 5 ? '#ff9800' : undefined }}>
+            Total questions: {totalQuestions} / 5
           </div>
         </div>
 
