@@ -5,6 +5,9 @@ import { density } from './subtypes/conversion/density';
 import { litersToM3 } from './subtypes/conversion/litersToM3';
 import { celsiusKelvin } from './subtypes/conversion/celsiusKelvin';
 import { velocity } from './subtypes/conversion/velocity';
+import { force } from './subtypes/conversion/force';
+import { length } from './subtypes/estimation/length';
+import { commonObjects } from './subtypes/estimation/commonObjects';
 
 export const SUBTYPES: QuestionSubtype[] = [
   basic,
@@ -12,6 +15,9 @@ export const SUBTYPES: QuestionSubtype[] = [
   litersToM3,
   celsiusKelvin,
   velocity,
+  force,
+  length,
+  commonObjects,
 ];
 
 export const SUBTYPE_BY_ID = Object.fromEntries(

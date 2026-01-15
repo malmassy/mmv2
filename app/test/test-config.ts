@@ -5,8 +5,13 @@ export type SubtypeCounts = Record<string, number | null>;
 
 export type TestSetupConfig = {
   countsBySubtypeId: SubtypeCounts;
-  timeSeconds: number;        // total time allotted
+  timeSeconds: number;        // total time allotted (for conversion questions)
   testId?: string;            // optional, for later
+  estimation?: {
+    enabled: boolean;
+    questionCount: number;
+    timePerQuestionSeconds: number;  // time per question for estimation
+  };
 };
 
 export const DEFAULT_TEST_SECONDS = 15 * 60; // 15 minutes

@@ -6,6 +6,8 @@ import { listSubtypes } from '../lib/engine/registry';
 import type { TestSetupConfig } from './test-config';
 import TestSession from './test-session';
 
+const DEFAULT_TEST_SECONDS = 10 * 60; // 10 minutes default
+
 type CountsBySubtypeId = Record<string, number | null>;
 
 function base64UrlEncode(str: string) {
@@ -45,9 +47,20 @@ function TestSetupPage() {
     return init;
   });
 
-  const [minutes, setMinutes] = useState<number>(10);
   const [testId, setTestId] = useState<string>('');
   const [error, setError] = useState<string>('');
+  
+  // Toggle states for each question type
+  const [conversionEnabled, setConversionEnabled] = useState<boolean>(true);
+  const [estimationEnabled, setEstimationEnabled] = useState<boolean>(false);
+  const [measurementEnabled, setMeasurementEnabled] = useState<boolean>(false);
+  
+  // Conversion settings
+  const [minutes, setMinutes] = useState<number>(10);
+  
+  // Estimation settings
+  const [estimationQuestionCount, setEstimationQuestionCount] = useState<number>(1);
+  const [estimationTimePerQuestionSeconds, setEstimationTimePerQuestionSeconds] = useState<number>(60);
 
   // Calculate total questions configured
   const totalQuestions = useMemo(() => {
@@ -93,25 +106,29 @@ function TestSetupPage() {
   function start() {
   setError('');
 
-  console.log('[TestSetup] Start clicked', { minutes, testId });
+  console.log('[TestSetup] Start clicked', { conversionEnabled, estimationEnabled, measurementEnabled, minutes, testId });
 
-  // minutes should always be one of your buttons, but keep this anyway
-  const m = Number(minutes);
-  if (!Number.isFinite(m) || m <= 0) {
-    setError('Time must be a positive number of minutes.');
-    console.warn('[TestSetup] Invalid minutes:', minutes);
-    return;
+  // Validate conversion if enabled
+  if (conversionEnabled) {
+    const MAX_QUESTIONS = 5;
+    if (totalQuestions > MAX_QUESTIONS) {
+      setError(`Maximum ${MAX_QUESTIONS} questions allowed. Currently configured: ${totalQuestions}`);
+      console.warn('[TestSetup] Too many questions:', totalQuestions);
+      return;
+    }
   }
 
-  // Validate total questions doesn't exceed maximum
-  const MAX_QUESTIONS = 5;
-  if (totalQuestions > MAX_QUESTIONS) {
-    setError(`Maximum ${MAX_QUESTIONS} questions allowed. Currently configured: ${totalQuestions}`);
-    console.warn('[TestSetup] Too many questions:', totalQuestions);
-    return;
+  // Validate time (always validate if conversion is enabled)
+  if (conversionEnabled) {
+    const m = Number(minutes);
+    if (!Number.isFinite(m) || m <= 0) {
+      setError('Time must be a positive number of minutes.');
+      console.warn('[TestSetup] Invalid minutes:', minutes);
+      return;
+    }
   }
 
-  const timeSeconds = Math.round(m * 60);
+  const timeSeconds = conversionEnabled ? Math.round(minutes * 60) : DEFAULT_TEST_SECONDS;
 
   const cleanedTestId = testId.trim();
   if (cleanedTestId && !/^[A-Za-z0-9_-]{1,32}$/.test(cleanedTestId)) {
@@ -121,9 +138,14 @@ function TestSetupPage() {
   }
 
   const cfg = {
-    countsBySubtypeId,
-    timeSeconds,
+    countsBySubtypeId: conversionEnabled ? countsBySubtypeId : {},
+    timeSeconds: conversionEnabled ? timeSeconds : DEFAULT_TEST_SECONDS,
     testId: cleanedTestId || undefined,
+    estimation: estimationEnabled ? {
+      enabled: true,
+      questionCount: estimationQuestionCount,
+      timePerQuestionSeconds: estimationTimePerQuestionSeconds,
+    } : undefined,
   };
 
   // base64url encode
@@ -163,57 +185,6 @@ function TestSetupPage() {
       </p>
 
       <section style={{ display: 'grid', gap: 16, marginTop: 16 }}>
-<div
-  style={{
-    borderRadius: 16,
-    padding: 16,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.04)',
-  }}
->
-  <div style={{ fontWeight: 700, marginBottom: 10 }}>Time Allotted</div>
-
-<div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-  {[5, 8, 10, 15].map((m) => {
-    const selected = minutes === m;
-    return (
-      <button
-        key={m}
-        type="button"
-        onClick={() => setMinutes(m)}
-        aria-pressed={selected}
-        style={{
-          padding: '10px 16px',
-          borderRadius: 999,
-          fontWeight: 800,
-          cursor: 'pointer',
-          minWidth: 84,
-
-          /* VERY clear selected vs unselected */
-          backgroundColor: selected ? '#ffffff' : '#aaaaaa',
-          color: selected ? '#000000' : '#ffffff',
-          border: selected
-            ? '2px solid #ffffff'
-            : '2px solid rgba(255,255,255,0.35)',
-
-          boxShadow: selected
-            ? '0 4px 12px rgba(0,0,0,0.35)'
-            : 'none',
-
-          transition: 'all 120ms ease-out',
-        }}
-      >
-        {selected ? '✓ ' : ''}
-        {m} min
-      </button>
-    );
-  })}
-</div>
-
-  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-    Total time: {minutes * 60} seconds
-  </div>
-</div>
         <div
           style={{
             borderRadius: 16,
@@ -230,84 +201,347 @@ function TestSetupPage() {
             style={{ width: '100%', maxWidth: 420 }}
           />
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-            Not used yet, but we’ll pass it into the test session for later scoring / sharing.
+            Not used yet, but we'll pass it into the test session for later scoring / sharing.
           </div>
         </div>
 
         <div
           style={{
-            borderRadius: 16,
+            borderRadius: 12,
             padding: 16,
             border: '1px solid rgba(255,255,255,0.12)',
             background: 'rgba(255,255,255,0.04)',
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Conversion Subtypes</div>
-
-          <div style={{ display: 'grid', gap: 10 }}>
-            {subtypes.map((s) => {
-              const v = countsBySubtypeId[s.id];
-              const isRandom = v === null;
-              return (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: estimationEnabled ? 16 : 0 }}>
+            <label 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.preventDefault();
+                setEstimationEnabled(!estimationEnabled);
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={estimationEnabled}
+                onChange={(e) => setEstimationEnabled(e.target.checked)}
+                style={{ display: 'none' }}
+              />
+              <div
+                style={{
+                  width: 48,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: estimationEnabled ? '#4CAF50' : '#cccccc',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
                 <div
-                  key={s.id}
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 140px 160px',
-                    gap: 12,
-                    alignItems: 'center',
-                    padding: '10px 12px',
-                    borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,0.10)',
-                    background: 'rgba(0,0,0,0.12)',
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    position: 'absolute',
+                    top: 2,
+                    left: estimationEnabled ? 26 : 2,
+                    transition: 'left 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                   }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 650 }}>{s.parentType.toUpperCase()} — {s.label}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Subtype ID: {s.id}</div>
-                  </div>
+                />
+              </div>
+            </label>
+            <span style={{ fontWeight: 700 }}>Estimation Section</span>
+          </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setRandom(s.id)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      background: isRandom ? 'rgba(255,255,255,0.10)' : 'transparent',
-                      cursor: 'pointer',
-                    }}
-                    aria-pressed={isRandom}
-                  >
-                    Random
-                  </button>
-
-                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>Count</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={5}
-                      step={1}
-                      value={isRandom ? '' : v}
-                      onChange={(e) => setCount(s.id, e.target.value)}
-                      placeholder="(random)"
-                      style={{ width: 110 }}
-                      title={!isRandom && v && totalQuestions >= 5 ? `Maximum 5 questions total (currently ${totalQuestions})` : undefined}
-                    />
-                  </label>
+          {estimationEnabled && (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Time per Question</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {[30, 60, 90, 120].map((sec) => {
+                    const selected = estimationTimePerQuestionSeconds === sec;
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setEstimationTimePerQuestionSeconds(sec)}
+                        aria-pressed={selected}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 999,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          minWidth: 70,
+                          backgroundColor: selected ? '#ffffff' : '#aaaaaa',
+                          color: selected ? '#000000' : '#ffffff',
+                          border: selected
+                            ? '2px solid #ffffff'
+                            : '2px solid rgba(255,255,255,0.35)',
+                          boxShadow: selected
+                            ? '0 4px 12px rgba(0,0,0,0.35)'
+                            : 'none',
+                          transition: 'all 120ms ease-out',
+                          fontSize: 13,
+                        }}
+                      >
+                        {selected ? '✓ ' : ''}
+                        {sec}s
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600, fontSize: 14 }}>
+                  <span>Number of Questions:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={estimationQuestionCount}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 1 && val <= 10) {
+                        setEstimationQuestionCount(val);
+                      }
+                    }}
+                    style={{
+                      width: 80,
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      background: 'rgba(0,0,0,0.2)',
+                      color: '#ffffff',
+                      fontSize: 14,
+                    }}
+                  />
+                </label>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div
+          style={{
+            borderRadius: 12,
+            padding: 16,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: conversionEnabled ? 16 : 0 }}>
+            <label 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.preventDefault();
+                setConversionEnabled(!conversionEnabled);
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={conversionEnabled}
+                onChange={(e) => setConversionEnabled(e.target.checked)}
+                style={{ display: 'none' }}
+              />
+              <div
+                style={{
+                  width: 48,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: conversionEnabled ? '#4CAF50' : '#cccccc',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    position: 'absolute',
+                    top: 2,
+                    left: conversionEnabled ? 26 : 2,
+                    transition: 'left 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </label>
+            <span style={{ fontWeight: 700 }}>Conversion Subtypes</span>
           </div>
 
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>
-            Leaving a subtype as <b>Random</b> means the test generator can pick it as needed.
+          {conversionEnabled && (
+            <>
+              {/* Time Allotted - part of Conversion section */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>Time Allotted</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {[5, 8, 10, 15].map((m) => {
+                    const selected = minutes === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMinutes(m)}
+                        aria-pressed={selected}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: 999,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          minWidth: 84,
+                          backgroundColor: selected ? '#ffffff' : '#aaaaaa',
+                          color: selected ? '#000000' : '#ffffff',
+                          border: selected
+                            ? '2px solid #ffffff'
+                            : '2px solid rgba(255,255,255,0.35)',
+                          boxShadow: selected
+                            ? '0 4px 12px rgba(0,0,0,0.35)'
+                            : 'none',
+                          transition: 'all 120ms ease-out',
+                        }}
+                      >
+                        {selected ? '✓ ' : ''}
+                        {m} min
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  Total time: {minutes * 60} seconds
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 10 }}>
+                {subtypes.filter(s => s.parentType === 'conversion').map((s) => {
+                  const v = countsBySubtypeId[s.id];
+                  const isRandom = v === null;
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 140px 160px',
+                        gap: 12,
+                        alignItems: 'center',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        border: '1px solid rgba(255,255,255,0.10)',
+                        background: 'rgba(0,0,0,0.12)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 650 }}>{s.parentType.toUpperCase()} — {s.label}</div>
+                        <div style={{ fontSize: 12, opacity: 0.7 }}>Subtype ID: {s.id}</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setRandom(s.id)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          background: isRandom ? 'rgba(255,255,255,0.10)' : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        aria-pressed={isRandom}
+                      >
+                        Random
+                      </button>
+
+                      <label style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: 12, opacity: 0.75 }}>Count</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          step={1}
+                          value={isRandom ? '' : v}
+                          onChange={(e) => setCount(s.id, e.target.value)}
+                          placeholder="(random)"
+                          style={{ width: 110 }}
+                          title={!isRandom && v && totalQuestions >= 5 ? `Maximum 5 questions total (currently ${totalQuestions})` : undefined}
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>
+                Leaving a subtype as <b>Random</b> means the test generator can pick it as needed.
+              </div>
+
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8, fontWeight: 600, color: totalQuestions >= 5 ? '#ff9800' : undefined }}>
+                Total questions: {totalQuestions} / 5
+              </div>
+            </>
+          )}
+        </div>
+
+        <div
+          style={{
+            borderRadius: 12,
+            padding: 16,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: measurementEnabled ? 16 : 0 }}>
+            <label 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.preventDefault();
+                setMeasurementEnabled(!measurementEnabled);
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={measurementEnabled}
+                onChange={(e) => setMeasurementEnabled(e.target.checked)}
+                style={{ display: 'none' }}
+              />
+              <div
+                style={{
+                  width: 48,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: measurementEnabled ? '#4CAF50' : '#cccccc',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    position: 'absolute',
+                    top: 2,
+                    left: measurementEnabled ? 26 : 2,
+                    transition: 'left 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </label>
+            <span style={{ fontWeight: 700 }}>Measurement</span>
           </div>
 
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8, fontWeight: 600, color: totalQuestions >= 5 ? '#ff9800' : undefined }}>
-            Total questions: {totalQuestions} / 5
-          </div>
+          {measurementEnabled && (
+            <div style={{ fontSize: 14, opacity: 0.8 }}>
+              Measurement configuration coming soon.
+            </div>
+          )}
         </div>
 
         {error ? (

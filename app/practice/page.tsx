@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { listSubtypes, SUBTYPE_BY_ID } from '../lib/engine/registry';
 import type { AttemptDraft, Question } from '../lib/engine/types';
 import RailroadWork, { RailroadStep } from '../components/RailroadWork';
+import LengthEstimation from '../components/LengthEstimation';
+import CommonObjectEstimation from '../components/CommonObjectEstimation';
 
 /**
  * Convert a digit to superscript
@@ -115,6 +117,7 @@ export default function PracticePage() {
   const [requireScientificNotation, setRequireScientificNotation] = useState(false);
   const [enforceSigFigs, setEnforceSigFigs] = useState(false);
   const [enforceUnits, setEnforceUnits] = useState(true);
+  const [estimationVarianceBand, setEstimationVarianceBand] = useState<'regionals' | 'states' | 'nationals'>('states');
 
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<{
@@ -199,6 +202,7 @@ export default function PracticePage() {
       requireScientificNotation,
       enforceSigFigs,
       enforceUnits,
+      estimationVarianceBand,
     });
 
     const timeSpentMs = Date.now() - questionStartTime;
@@ -267,7 +271,7 @@ export default function PracticePage() {
   // -------------------------------------------
 
   return (
-    <main style={{ padding: '2rem', maxWidth: 900 }}>
+    <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
       <h1>Metric Mastery Practice</h1>
 
 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
@@ -298,14 +302,17 @@ export default function PracticePage() {
   <div className="controlsCard">
     <div className="controlsTitle">Grading Options</div>
 
-    <label className="controlRow">
-      <input
-        type="checkbox"
-        checked={enforceSigFigs}
-        onChange={(e) => setEnforceSigFigs(e.target.checked)}
-      />
-      <span>Enforce Sig Figs</span>
-    </label>
+    {/* Only show Sig Figs option for non-estimation subtypes */}
+    {question?.parentType !== 'estimation' && (
+      <label className="controlRow">
+        <input
+          type="checkbox"
+          checked={enforceSigFigs}
+          onChange={(e) => setEnforceSigFigs(e.target.checked)}
+        />
+        <span>Enforce Sig Figs</span>
+      </label>
+    )}
 
     <label className="controlRow">
       <input
@@ -315,6 +322,22 @@ export default function PracticePage() {
       />
       <span>Enforce Units</span>
     </label>
+
+    {/* Variance band selector for estimation types */}
+    {question?.parentType === 'estimation' && (
+      <label className="controlRow" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+        <span>Variance Band:</span>
+        <select
+          value={estimationVarianceBand}
+          onChange={(e) => setEstimationVarianceBand(e.target.value as 'regionals' | 'states' | 'nationals')}
+          style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '14px' }}
+        >
+          <option value="regionals">Regionals (15/30/45)</option>
+          <option value="states">States (10/20/30)</option>
+          <option value="nationals">Nationals (5/10/15)</option>
+        </select>
+      </label>
+    )}
   </div>
 </div>
 
@@ -328,6 +351,28 @@ export default function PracticePage() {
         ) : (
           <>
             <div style={{ marginBottom: 12 }}>{question.prompt}</div>
+
+            {/* Estimation Components */}
+            {question.subtype === 'estimation.length' && question.meta.lengthCm && (
+              <div style={{ marginBottom: 16 }}>
+                <LengthEstimation lengthCm={question.meta.lengthCm} />
+              </div>
+            )}
+            {question.subtype === 'estimation.commonObjects' && question.meta.objectCategory && (
+              <div style={{ marginBottom: 16 }}>
+                <CommonObjectEstimation
+                  objectCategory={question.meta.objectCategory}
+                  objectType={question.meta.objectType}
+                  objectName={question.meta.objectName}
+                  measurementType={question.meta.measurementType}
+                  measurementLabel={question.meta.measurementLabel}
+                  coinDiameter={question.meta.coinDiameter}
+                  coinThickness={question.meta.coinThickness}
+                  batteryLength={question.meta.batteryLength}
+                  batteryDiameter={question.meta.batteryDiameter}
+                />
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
               <input
@@ -355,7 +400,7 @@ export default function PracticePage() {
       </div>
 
       {/* How to Solve Section */}
-      {question && (question?.subtype === 'conversion.basic' || question?.subtype === 'conversion.density' || shouldShowRailroad) && (
+      {question && question?.parentType !== 'estimation' && (question?.subtype === 'conversion.basic' || question?.subtype === 'conversion.density' || shouldShowRailroad) && (
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, marginBottom: 16 }}>
           <div style={{ marginBottom: 12, fontWeight: 600 }}>How to Solve</div>
           

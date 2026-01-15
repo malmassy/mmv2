@@ -45,5 +45,5 @@ export const PREFIX_EXPONENTS: Record<string, number> = Object.fromEntries(
 );
 
 // Base units that prefixes can be applied to
-export const BASE_UNITS = ['m', 'g', 'L'] as const;
+export const BASE_UNITS = ['m', 'g', 'L', 'N'] as const;
 export type BaseUnit = typeof BASE_UNITS[number];

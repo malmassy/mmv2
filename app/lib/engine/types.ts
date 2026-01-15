@@ -4,6 +4,7 @@ export type GradeOptions = {
   requireScientificNotation?: boolean;
   enforceSigFigs?: boolean;
   enforceUnits?: boolean;
+  estimationVarianceBand?: 'regionals' | 'states' | 'nationals';
 };
 
 export type GradeResult = {

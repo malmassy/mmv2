@@ -1,8 +1,8 @@
 export type ParsedQuantity = {
   value: number;          // numeric value in "as-entered" units
   unitRaw: string | null; // raw parsed unit, e.g. "kg"
-  valueInBase: number;    // converted to base unit: m, g, L
-  baseUnit: 'm' | 'g' | 'L' | null;
+  valueInBase: number;    // converted to base unit: m, g, L, N
+  baseUnit: 'm' | 'g' | 'L' | 'N' | null;
 };
 
 // metric prefix factors
@@ -14,13 +14,13 @@ const PREFIX: Record<string, number> = {
   p: 1e-12, f: 1e-15, a: 1e-18, z: 1e-21, y: 1e-24,
 };
 
-const BASE_UNITS = new Set(['m', 'g', 'L']);
+const BASE_UNITS = new Set(['m', 'g', 'L', 'N']);
 
 /**
- * Parses unit strings like: "km", "m", "cm", "kg", "mg", "kL", "mL".
- * Returns conversion to base units: m, g, L.
+ * Parses unit strings like: "km", "m", "cm", "kg", "mg", "kL", "mL", "kN", "mN".
+ * Returns conversion to base units: m, g, L, N.
  */
-export function parseMetricUnit(unit: string): { baseUnit: 'm' | 'g' | 'L'; factorToBase: number } | null {
+export function parseMetricUnit(unit: string): { baseUnit: 'm' | 'g' | 'L' | 'N'; factorToBase: number } | null {
   const u = unit.trim();
 
   // handle "da" prefix (two chars) first
