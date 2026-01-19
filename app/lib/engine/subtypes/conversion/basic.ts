@@ -2,7 +2,7 @@
 import type { GradeOptions, Question, QuestionSubtype } from '../../types';
 import { parseNumberLoose } from '../../utils/number';
 import { withinTolerance } from '../../utils/tolerance';
-import { looksLikeScientificNotation, countSigFigs } from '../../utils/answerFormat';
+import { looksLikeScientificNotation, countSigFigs, normalizeUnit } from '../../utils/answerFormat';
 import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';
 import { makeId } from '../../utils/id';
 
@@ -130,6 +130,13 @@ export const basic: QuestionSubtype = {
 
     const requiredSigFigs = countSigFigs(valueFromDisplay) ?? 3;
 
+    // Calculate exponents for the algorithm widget
+    // Question value exponent: the exponent when valueFrom is written in scientific notation
+    // e.g., 5.2 → 0, 520 → 2, 0.052 → -2
+    const questionValueExponent = valueFrom === 0 ? 0 : Math.floor(Math.log10(Math.abs(valueFrom)));
+    // Final exponent: the exponent when correct answer is written in scientific notation
+    const finalExponent = correct === 0 ? 0 : Math.floor(Math.log10(Math.abs(correct)));
+
     const q: Question = {
       id: `conversion.basic.${makeId('q')}`,
       parentType: 'conversion',
@@ -143,6 +150,10 @@ export const basic: QuestionSubtype = {
         correct,
         requiredSigFigs,
         power,
+        fromPrefixExponent: fromP.exponent,
+        toPrefixExponent: toP.exponent,
+        questionValueExponent,
+        finalExponent,
       },
       createdAtMs: Date.now(),
     };
@@ -221,7 +232,7 @@ export const basic: QuestionSubtype = {
 
     if (opts.enforceUnits) {
       // Strict unit enforcement: require units
-      if (!parsed.unitRaw) {
+      if (!parsed.unitRaw || parsed.unitRaw.trim() === '') {
         return {
           isCorrect: false,
           score: 0,
@@ -259,6 +270,29 @@ export const basic: QuestionSubtype = {
       // Convert: student value → base^power → target unit
       const valueInBasePow = n * studentInfo.factorToBasePow;
       submittedInTarget = valueInBasePow / targetInfo.factorToBasePow;
+
+      // When enforceUnits is true, also check that units match exactly (normalized)
+      if (opts.enforceUnits) {
+        const normalizedStudentUnit = normalizeUnit(parsed.unitRaw);
+        const normalizedTargetUnit = normalizeUnit(targetUnit);
+        if (normalizedStudentUnit !== normalizedTargetUnit) {
+          return {
+            isCorrect: false,
+            score: 0,
+            feedback: `Units must match exactly. This question asks for ${targetUnit}, but you provided ${parsed.unitRaw}.`,
+            correctAnswerDisplay: `${correctNice} ${targetUnit}`,
+          };
+        }
+      }
+    } else if (opts.enforceUnits) {
+      // If enforceUnits is true and no units were provided, we should have caught this above,
+      // but add this as a safety check
+      return {
+        isCorrect: false,
+        score: 0,
+        feedback: `Units are required. This question asks for ${targetUnit}.`,
+        correctAnswerDisplay: `${correctNice} ${targetUnit}`,
+      };
     }
 
     // 5) Grade numeric equivalence

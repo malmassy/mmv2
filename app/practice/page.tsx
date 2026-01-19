@@ -6,6 +6,9 @@ import type { AttemptDraft, Question } from '../lib/engine/types';
 import RailroadWork, { RailroadStep } from '../components/RailroadWork';
 import LengthEstimation from '../components/LengthEstimation';
 import CommonObjectEstimation from '../components/CommonObjectEstimation';
+import BasicConversionWidget from '../components/BasicConversionWidget';
+import DensityConversionWidget from '../components/DensityConversionWidget';
+import HowToSolveModal from '../components/HowToSolveModal';
 
 /**
  * Convert a digit to superscript
@@ -115,7 +118,7 @@ export default function PracticePage() {
   const [workSteps, setWorkSteps] = useState<RailroadStep[]>([]);
 
   const [requireScientificNotation, setRequireScientificNotation] = useState(false);
-  const [enforceSigFigs, setEnforceSigFigs] = useState(false);
+  const [enforceSigFigs, setEnforceSigFigs] = useState(defaultSubtypeId === 'conversion.basic');
   const [enforceUnits, setEnforceUnits] = useState(true);
   const [estimationVarianceBand, setEstimationVarianceBand] = useState<'regionals' | 'states' | 'nationals'>('states');
 
@@ -125,21 +128,7 @@ export default function PracticePage() {
     isCorrect: boolean;
     correct?: string;
   } | null>(null);
-
-  // Algorithm input values (for basic conversion)
-  const [algorithmInputPrefixExp, setAlgorithmInputPrefixExp] = useState<string>('');
-  const [algorithmOutputPrefixExp, setAlgorithmOutputPrefixExp] = useState<string>('');
-  const [algorithmPower, setAlgorithmPower] = useState<string>('');
-  const [algorithmValueExp, setAlgorithmValueExp] = useState<string>('');
-  
-  // Algorithm input values (for density conversion)
-  const [densityInputNumPrefixExp, setDensityInputNumPrefixExp] = useState<string>('');
-  const [densityOutputNumPrefixExp, setDensityOutputNumPrefixExp] = useState<string>('');
-  const [densityInputDenPrefixExp, setDensityInputDenPrefixExp] = useState<string>('');
-  const [densityOutputDenPrefixExp, setDensityOutputDenPrefixExp] = useState<string>('');
-  const [densityNumPower, setDensityNumPower] = useState<string>('');
-  const [densityDenPower, setDensityDenPower] = useState<string>('');
-  const [densityValueExp, setDensityValueExp] = useState<string>('');
+  const [showHowToSolve, setShowHowToSolve] = useState(false);
 
   // Ensure we only auto-generate once on mount
   const didInitRef = useRef(false);
@@ -163,23 +152,6 @@ export default function PracticePage() {
       setResult(null);
       setWorkSteps([]);
       setQuestionStartTime(Date.now());
-      
-    // Reset algorithm inputs when new question is generated
-    if (q.subtype === 'conversion.basic' && q.meta) {
-      setAlgorithmInputPrefixExp('');
-      setAlgorithmOutputPrefixExp('');
-      setAlgorithmPower('');
-      setAlgorithmValueExp('');
-    }
-    if (q.subtype === 'conversion.density' && q.meta) {
-      setDensityInputNumPrefixExp('');
-      setDensityOutputNumPrefixExp('');
-      setDensityInputDenPrefixExp('');
-      setDensityOutputDenPrefixExp('');
-      setDensityNumPower('');
-      setDensityDenPower('');
-      setDensityValueExp('');
-    }
     } catch (error) {
       console.error('[PracticePage] Error generating question:', error);
     }
@@ -224,6 +196,14 @@ export default function PracticePage() {
 
     console.log('ATTEMPT', attempt);
   }
+
+  // Set default options for basic conversions
+  useEffect(() => {
+    if (subtypeId === 'conversion.basic') {
+      setEnforceSigFigs(true);
+      setEnforceUnits(true);
+    }
+  }, [subtypeId]);
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -296,6 +276,19 @@ export default function PracticePage() {
     </label>
 
     <button onClick={() => newQuestion()}>New Question</button>
+    <button 
+      onClick={() => setShowHowToSolve(true)}
+      style={{
+        padding: '8px 16px',
+        fontSize: '14px',
+        backgroundColor: '#f0f0f0',
+        border: '1px solid #ccc',
+        borderRadius: '6px',
+        cursor: 'pointer',
+      }}
+    >
+      How to Solve
+    </button>
   </div>
 
   {/* Right: Grading Options */}
@@ -404,344 +397,8 @@ export default function PracticePage() {
         <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, marginBottom: 16 }}>
           <div style={{ marginBottom: 12, fontWeight: 600 }}>How to Solve</div>
           
-          {question?.subtype === 'conversion.density' && question.meta && (() => {
-  // Parse input values
-  const inputNumPrefixExp = densityInputNumPrefixExp.trim() === '' ? null : Number(densityInputNumPrefixExp);
-  const outputNumPrefixExp = densityOutputNumPrefixExp.trim() === '' ? null : Number(densityOutputNumPrefixExp);
-  const inputDenPrefixExp = densityInputDenPrefixExp.trim() === '' ? null : Number(densityInputDenPrefixExp);
-  const outputDenPrefixExp = densityOutputDenPrefixExp.trim() === '' ? null : Number(densityOutputDenPrefixExp);
-  const numPower = densityNumPower.trim() === '' ? null : Number(densityNumPower);
-  const denPower = densityDenPower.trim() === '' ? null : Number(densityDenPower);
-  const valueExp = densityValueExp.trim() === '' ? null : Number(densityValueExp);
-  
-  // Check each input against correct value
-  const inputNumPrefixExpCorrect = inputNumPrefixExp !== null && Number.isFinite(inputNumPrefixExp) && Math.abs(inputNumPrefixExp - (question.meta.inputNumPrefixExp ?? 0)) < 0.001;
-  const outputNumPrefixExpCorrect = outputNumPrefixExp !== null && Number.isFinite(outputNumPrefixExp) && Math.abs(outputNumPrefixExp - (question.meta.outputNumPrefixExp ?? 0)) < 0.001;
-  const inputDenPrefixExpCorrect = inputDenPrefixExp !== null && Number.isFinite(inputDenPrefixExp) && Math.abs(inputDenPrefixExp - (question.meta.inputDenPrefixExp ?? 0)) < 0.001;
-  const outputDenPrefixExpCorrect = outputDenPrefixExp !== null && Number.isFinite(outputDenPrefixExp) && Math.abs(outputDenPrefixExp - (question.meta.outputDenPrefixExp ?? 0)) < 0.001;
-  const numPowerCorrect = numPower !== null && Number.isFinite(numPower) && Math.abs(numPower - (question.meta.numPower ?? 1)) < 0.001;
-  const denPowerCorrect = denPower !== null && Number.isFinite(denPower) && Math.abs(denPower - (question.meta.denPower ?? 1)) < 0.001;
-  const valueExpCorrect = valueExp !== null && Number.isFinite(valueExp) && Math.abs(valueExp - (question.meta.questionValueExponent ?? 0)) < 0.001;
-  
-  // Calculate exponent if all values are provided
-  // Formula: (Input Num Prefix Exp - Output Num Prefix Exp) × Den Power + Question Value Exp - (Input Den Prefix Exp - Output Den Prefix Exp)
-  let calculatedExponent: number | null = null;
-  if (inputNumPrefixExp !== null && outputNumPrefixExp !== null && inputDenPrefixExp !== null && outputDenPrefixExp !== null && denPower !== null && valueExp !== null) {
-    if (Number.isFinite(inputNumPrefixExp) && Number.isFinite(outputNumPrefixExp) && Number.isFinite(inputDenPrefixExp) && Number.isFinite(outputDenPrefixExp) && Number.isFinite(denPower) && Number.isFinite(valueExp)) {
-      calculatedExponent = (inputNumPrefixExp - outputNumPrefixExp) * denPower + valueExp - (inputDenPrefixExp - outputDenPrefixExp);
-    }
-  }
-  
-  // Check if calculated exponent matches the correct one
-  const isCorrect = calculatedExponent !== null && question.meta.finalExponent !== null && Math.abs(calculatedExponent - question.meta.finalExponent) < 0.001;
-  
-  // Helper function to get input background color
-  const getInputBgColor = (hasValue: boolean, isCorrect: boolean) => {
-    if (!hasValue) return '#fff';
-    return isCorrect ? '#d4edda' : '#f8d7da'; // Light green for correct, light red for wrong
-  };
-  
-  return (
-    <div style={{ marginBottom: 12, padding: 14, border: '1px solid #ddd', borderRadius: 8, background: '#f9f9f9' }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>Recommended: Algorithm</div>
-      <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-        <div style={{ marginBottom: 8 }}>
-          Density conversions can always be solved using:
-        </div>
-        <div style={{ 
-          fontFamily: 'monospace', 
-          background: '#fff', 
-          padding: '10px 12px', 
-          borderRadius: 6,
-          border: '1px solid #ccc',
-          marginBottom: 8
-        }}>
-          Exponent = ([Input Numerator Prefix Exponent] - [Output Numerator Prefix Exponent]) × [Squared or Cubed (Denominator)] + [Question Value Exponent] - ([Input Denominator Prefix Exponent] - [Output Denominator Prefix Exponent])
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <div style={{ marginBottom: 8 }}>
-            <strong>For this question:</strong>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '8px 12px', alignItems: 'center', fontSize: 13 }}>
-            <label style={{ fontFamily: 'monospace' }}>Input Numerator Prefix Exp:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityInputNumPrefixExp}
-              onChange={(e) => setDensityInputNumPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${inputNumPrefixExpCorrect ? '#28a745' : inputNumPrefixExp !== null && !inputNumPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(inputNumPrefixExp !== null, inputNumPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Output Numerator Prefix Exp:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityOutputNumPrefixExp}
-              onChange={(e) => setDensityOutputNumPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${outputNumPrefixExpCorrect ? '#28a745' : outputNumPrefixExp !== null && !outputNumPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(outputNumPrefixExp !== null, outputNumPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Input Denominator Prefix Exp:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityInputDenPrefixExp}
-              onChange={(e) => setDensityInputDenPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${inputDenPrefixExpCorrect ? '#28a745' : inputDenPrefixExp !== null && !inputDenPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(inputDenPrefixExp !== null, inputDenPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Output Denominator Prefix Exp:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityOutputDenPrefixExp}
-              onChange={(e) => setDensityOutputDenPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${outputDenPrefixExpCorrect ? '#28a745' : outputDenPrefixExp !== null && !outputDenPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(outputDenPrefixExp !== null, outputDenPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Squared or Cubed (Numerator):</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityNumPower}
-              onChange={(e) => setDensityNumPower(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${numPowerCorrect ? '#28a745' : numPower !== null && !numPowerCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(numPower !== null, numPowerCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Squared or Cubed (Denominator):</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityDenPower}
-              onChange={(e) => setDensityDenPower(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${denPowerCorrect ? '#28a745' : denPower !== null && !denPowerCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(denPower !== null, denPowerCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Question Value Exponent:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={densityValueExp}
-              onChange={(e) => setDensityValueExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${valueExpCorrect ? '#28a745' : valueExp !== null && !valueExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(valueExp !== null, valueExpCorrect),
-              }}
-            />
-          </div>
-          
-          {/* Formula that fills in as you go */}
-          <div style={{ marginTop: 16, padding: '12px', background: '#fff', borderRadius: 6, border: '1px solid #ccc' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700 }}>
-              Answer Exponent = ({densityInputNumPrefixExp || ' '} - {densityOutputNumPrefixExp || ' '}) × {densityDenPower || ' '} + {densityValueExp || ' '} - ({densityInputDenPrefixExp || ' '} - {densityOutputDenPrefixExp || ' '}) = {calculatedExponent !== null ? calculatedExponent.toFixed(1) : ' '}
-            </div>
-            {calculatedExponent !== null && question.meta.finalExponent !== null && (
-              <div style={{ marginTop: 8, fontSize: 12 }}>
-                {isCorrect ? (
-                  <span style={{ fontWeight: 700, color: '#4CAF50' }}>
-                    ✓ Correct! Expected: {question.meta.finalExponent}
-                  </span>
-                ) : (
-                  <span style={{ fontWeight: 700, color: '#f44336' }}>
-                    ✗ Not quite. Expected: {question.meta.finalExponent}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-})()}
-
-          {question?.subtype === 'conversion.basic' && question.meta && (() => {
-  // Parse input values
-  const inputPrefixExp = algorithmInputPrefixExp.trim() === '' ? null : Number(algorithmInputPrefixExp);
-  const outputPrefixExp = algorithmOutputPrefixExp.trim() === '' ? null : Number(algorithmOutputPrefixExp);
-  const power = algorithmPower.trim() === '' ? null : Number(algorithmPower);
-  const valueExp = algorithmValueExp.trim() === '' ? null : Number(algorithmValueExp);
-  
-  // Check each input against correct value
-  const inputPrefixExpCorrect = inputPrefixExp !== null && Number.isFinite(inputPrefixExp) && Math.abs(inputPrefixExp - question.meta.fromPrefixExponent) < 0.001;
-  const outputPrefixExpCorrect = outputPrefixExp !== null && Number.isFinite(outputPrefixExp) && Math.abs(outputPrefixExp - question.meta.toPrefixExponent) < 0.001;
-  const powerCorrect = power !== null && Number.isFinite(power) && Math.abs(power - question.meta.power) < 0.001;
-  const valueExpCorrect = valueExp !== null && Number.isFinite(valueExp) && Math.abs(valueExp - question.meta.questionValueExponent) < 0.001;
-  
-  // Calculate exponent if all values are provided
-  let calculatedExponent: number | null = null;
-  if (inputPrefixExp !== null && outputPrefixExp !== null && power !== null && valueExp !== null) {
-    if (Number.isFinite(inputPrefixExp) && Number.isFinite(outputPrefixExp) && Number.isFinite(power) && Number.isFinite(valueExp)) {
-      calculatedExponent = (inputPrefixExp - outputPrefixExp) * power + valueExp;
-    }
-  }
-  
-  // Check if calculated exponent matches the correct one
-  const isCorrect = calculatedExponent !== null && Math.abs(calculatedExponent - question.meta.finalExponent) < 0.001;
-  
-  // Helper function to get input background color
-  const getInputBgColor = (hasValue: boolean, isCorrect: boolean) => {
-    if (!hasValue) return '#fff';
-    return isCorrect ? '#d4edda' : '#f8d7da'; // Light green for correct, light red for wrong
-  };
-  
-  return (
-    <div style={{ marginBottom: 12, padding: 14, border: '1px solid #ddd', borderRadius: 8, background: '#f9f9f9' }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>Recommended: Algorithm</div>
-      <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-        <div style={{ marginBottom: 8 }}>
-          Basic conversions can always be solved using:
-        </div>
-        <div style={{ 
-          fontFamily: 'monospace', 
-          background: '#fff', 
-          padding: '10px 12px', 
-          borderRadius: 6,
-          border: '1px solid #ccc',
-          marginBottom: 8
-        }}>
-          Exponent = ([Input Prefix Exponent] - [Output Prefix Exponent]) × [Squared or Cubed Units] + [Question Value Exponent]
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <div style={{ marginBottom: 8 }}>
-            <strong>For this question:</strong>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 12px', alignItems: 'center', fontSize: 13 }}>
-            <label style={{ fontFamily: 'monospace' }}>Input Prefix Exponent:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={algorithmInputPrefixExp}
-              onChange={(e) => setAlgorithmInputPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${inputPrefixExpCorrect ? '#28a745' : inputPrefixExp !== null && !inputPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(inputPrefixExp !== null, inputPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Output Prefix Exponent:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={algorithmOutputPrefixExp}
-              onChange={(e) => setAlgorithmOutputPrefixExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${outputPrefixExpCorrect ? '#28a745' : outputPrefixExp !== null && !outputPrefixExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(outputPrefixExp !== null, outputPrefixExpCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Squared or Cubed Units:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={algorithmPower}
-              onChange={(e) => setAlgorithmPower(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${powerCorrect ? '#28a745' : power !== null && !powerCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(power !== null, powerCorrect),
-              }}
-            />
-            
-            <label style={{ fontFamily: 'monospace' }}>Question Value Exponent:</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={algorithmValueExp}
-              onChange={(e) => setAlgorithmValueExp(e.target.value)}
-              style={{
-                padding: '6px 8px',
-                border: `1px solid ${valueExpCorrect ? '#28a745' : valueExp !== null && !valueExpCorrect ? '#dc3545' : '#ccc'}`,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: getInputBgColor(valueExp !== null, valueExpCorrect),
-              }}
-            />
-          </div>
-          
-          {/* Formula that fills in as you go */}
-          <div style={{ marginTop: 16, padding: '12px', background: '#fff', borderRadius: 6, border: '1px solid #ccc' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700 }}>
-              Answer Exponent = ({algorithmInputPrefixExp || ' '} - {algorithmOutputPrefixExp || ' '}) × {algorithmPower || ' '} + {algorithmValueExp || ' '} = {calculatedExponent !== null ? calculatedExponent.toFixed(1) : ' '}
-            </div>
-            {calculatedExponent !== null && (
-              <div style={{ marginTop: 8, fontSize: 12 }}>
-                {isCorrect ? (
-                  <span style={{ fontWeight: 700, color: '#4CAF50' }}>
-                    ✓ Correct! Expected: {question.meta.finalExponent}
-                  </span>
-                ) : (
-                  <span style={{ fontWeight: 700, color: '#f44336' }}>
-                    ✗ Not quite. Expected: {question.meta.finalExponent}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-})()}
+          <BasicConversionWidget question={question} />
+          <DensityConversionWidget question={question} />
 
           {(question?.subtype === 'conversion.density' || shouldShowRailroad) && (
             <div style={{ marginBottom: 12, padding: 14, border: '1px solid #ddd', borderRadius: 8, background: '#f9f9f9' }}>
@@ -755,6 +412,12 @@ export default function PracticePage() {
           )}
         </div>
       )}
+
+      <HowToSolveModal 
+        isOpen={showHowToSolve}
+        onClose={() => setShowHowToSolve(false)}
+        subtypeId={subtypeId}
+      />
     </main>
   );
 }

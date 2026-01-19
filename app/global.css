@@ -3,10 +3,10 @@
    ========================================================= */
 
 :root {
-  --bg: #e8f5e9;
+  --bg: #f6f7f9;
   --card: #ffffff;
-  --border: #c8e6c9;
-  --border-soft: #dcedc8;
+  --border: #d9dde3;
+  --border-soft: #e6e9ef;
   --text: #1f2933;
   --muted: #6b7280;
   --accent: #2563eb;
@@ -232,10 +232,10 @@ button:hover {
   padding: 14px 18px;
   margin-bottom: 18px;
 
-  background: rgba(20, 80, 40, 0.96);
+  background: rgba(12, 12, 12, 0.95);
   backdrop-filter: blur(8px);
 
-  border: 2px solid rgba(76, 175, 80, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 14px;
 }
 
@@ -271,8 +271,8 @@ button:hover {
 
   /* ✅ KEY FIXES */
   color: #ffffff;                         /* white digits */
-  background: rgba(76, 175, 80, 0.25);  /* green translucent bg */
-  border: 2px solid rgba(76, 175, 80, 0.5);
+  background: rgba(255, 255, 255, 0.12);  /* light translucent bg */
+  border: 2px solid rgba(255, 255, 255, 0.35);
 
   border-radius: 12px;
 }
@@ -295,8 +295,8 @@ button:hover {
   font-weight: 800;
 
   border-radius: 12px;
-  border: 2px solid rgba(76, 175, 80, 0.5);
-  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
   cursor: pointer;
 }
@@ -304,22 +304,6 @@ button:hover {
 .test-submit-btn:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-/* Restart/action buttons */
-.test-restart-btn {
-  padding: 10px 16px;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 12px;
-  border: 2px solid rgba(76, 175, 80, 0.5);
-  background: rgba(76, 175, 80, 0.2);
-  color: white;
-  cursor: pointer;
-}
-
-.test-restart-btn:hover {
-  background: rgba(76, 175, 80, 0.3);
 }
 
 .test-timer-bar {
@@ -337,9 +321,9 @@ button:hover {
   /* ✅ ensure readable text */
   color: #fff;
 
-  /* Green base color theme */
-  background: rgba(20, 80, 40, 0.96);
-  border: 2px solid rgba(76, 175, 80, 0.4);
+  /* keep your dark look but not pure black */
+  background: rgba(24, 24, 24, 0.96);
+  border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 14px;
   backdrop-filter: blur(8px);
 }
@@ -363,8 +347,8 @@ button:hover {
 
 .test-timer-clock {
   color: #ffffff;
-  background: rgba(76, 175, 80, 0.25);
-  border: 2px solid rgba(76, 175, 80, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.32);
 }
 
 .controlsCard{

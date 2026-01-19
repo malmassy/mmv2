@@ -31,6 +31,18 @@ function toSuperscript(num: number): string {
 }
 
 /**
+ * Convert superscript characters back to regular digits
+ */
+function fromSuperscript(sup: string): string {
+  const superscripts: Record<string, string> = {
+    '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+    '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+    '⁻': '-', '⁺': '+'
+  };
+  return sup.split('').map(char => superscripts[char] || char).join('');
+}
+
+/**
  * --- Unit parsing rules (MVP but useful) ---
  * We parse the "unit part" of a cell like:
  *   "100 cm" => units: cm
@@ -88,17 +100,41 @@ function stripLeadingNumberAndSpaces(raw: string) {
 
 
 function parseUnitToken(tok: string): UnitOcc[] {
-  // tok like "m", "m^2", "s^-1"
+  // tok like "m", "m^2", "m²", "s^-1", "s⁻¹"
   // return list (usually 1 item)
   const t = tok.trim();
   if (!t) return [];
 
-  const m = t.match(/^([a-zA-Zµ°]+)(?:\^?([+-]?\d+))?$/);
-  if (!m) return []; // ignore weird tokens
-  const unit = m[1];
-  const exp = m[2] ? Number(m[2]) : 1;
-  if (!Number.isFinite(exp) || exp === 0) return [];
-  return [{ unit, exp }];
+  // First, try to match with caret notation: "m^2", "s^-1"
+  let m = t.match(/^([a-zA-Zµ°]+)(?:\^([+-]?\d+))?$/);
+  if (m) {
+    const unit = m[1];
+    const exp = m[2] ? Number(m[2]) : 1;
+    if (Number.isFinite(exp) && exp !== 0) {
+      return [{ unit, exp }];
+    }
+  }
+
+  // If that didn't match, try to match with superscript: "m²", "s⁻¹"
+  // Match unit name followed by optional superscript characters
+  m = t.match(/^([a-zA-Zµ°]+)([⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+)?$/);
+  if (m) {
+    const unit = m[1];
+    const supExp = m[2];
+    if (supExp) {
+      // Convert superscript to regular number
+      const expStr = fromSuperscript(supExp);
+      const exp = Number(expStr);
+      if (Number.isFinite(exp) && exp !== 0) {
+        return [{ unit, exp }];
+      }
+    } else {
+      // No exponent, default to 1
+      return [{ unit, exp: 1 }];
+    }
+  }
+
+  return []; // ignore weird tokens
 }
 
 function parseUnits(rawCell: string): UnitOcc[] {
