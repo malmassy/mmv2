@@ -5,7 +5,7 @@ import { listSubtypes, SUBTYPE_BY_ID } from '../lib/engine/registry';
 import type { GradeResult, Question } from '../lib/engine/types';
 import type { TestSetupConfig } from './test-config';
 import { generateTestQuestions } from '../lib/test/services/testGenerator';
-import { gradeTest, createTestResult } from '../lib/test/services/testService';
+import { gradeTest } from '../lib/test/services/testService';
 import { formatMMSS, formatCorrectAnswerWithScientific } from '../lib/test/utils/formatting';
 import LengthEstimation from '../components/LengthEstimation';
 import CommonObjectEstimation from '../components/CommonObjectEstimation';
@@ -198,10 +198,6 @@ export default function TestSession({ config }: Props) {
 
     // Open results by default after submit
     setShowResults(true);
-    
-    // TODO: Save to database via API
-    // const testResult = createTestResult(...);
-    // await fetch('/api/tests', { method: 'POST', body: JSON.stringify(testResult) });
   }
 
   function handlePause() {

@@ -1,19 +1,7 @@
-// Test result types for database storage
+// Test result types
 
 import type { Question, GradeResult } from '../engine/types';
 import type { TestSetupConfig } from '../../test/test-config';
-
-/**
- * User type for database storage
- */
-export type User = {
-  id: string;
-  email: string;
-  name?: string;
-  isAdmin: boolean;
-  createdAt: number;
-  updatedAt: number;
-};
 
 /**
  * Represents a single answer to a question
@@ -27,11 +15,10 @@ export type TestAnswer = {
 };
 
 /**
- * Complete test result ready for database storage
+ * Complete test result
  */
 export type TestResult = {
-  id?: string; // Database ID (generated on save)
-  userId?: string; // Optional user ID
+  id?: string; // Optional identifier
   testId?: string; // Optional test identifier
   config: TestSetupConfig;
   questions: Question[];

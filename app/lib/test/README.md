@@ -1,11 +1,11 @@
-# Test Module Refactor
+# Test Module
 
-This module contains the refactored test system, prepared for database integration.
+This module contains the test system for generating, grading, and managing test questions.
 
 ## Structure
 
 ### Types (`types.ts`)
-- `TestResult`: Complete test result ready for database storage
+- `TestResult`: Complete test result
 - `TestAnswer`: Single answer to a question
 - `TestSessionState`: Client-side only state
 - `QuestionAttempt`: Individual question attempt for analytics
@@ -25,30 +25,11 @@ Question generation:
 
 ### Utilities
 
-#### `formatting.ts`
+#### `formatting.tsx`
 Shared formatting functions:
 - `formatMMSS`: Time formatting
 - `formatCorrectAnswerWithScientific`: Answer display formatting
 - `toSuperscript`, `formatWithCommas`, `formatScientificNotation`: Number formatting
-
-### Database
-
-#### `schema.ts`
-Database schema types:
-- `TestResultRow`: Database representation of test results
-- `QuestionAttemptRow`: Database representation of question attempts
-- `TestStatisticsRow`: Aggregated statistics
-
-#### `mapper.ts`
-Conversion between domain types and database types:
-- `testResultToRow` / `rowToTestResult`
-- `questionAttemptToRow` / `rowToQuestionAttempt`
-
-## API Routes
-
-### `/api/tests`
-- `POST`: Save a test result
-- `GET`: Retrieve a test result by ID
 
 ## Usage
 
@@ -58,20 +39,18 @@ import { gradeTest, generateTestQuestions } from '@/app/lib/test';
 import { formatMMSS } from '@/app/lib/test/utils/formatting';
 ```
 
-### Saving to Database
+### Creating Test Results
 ```typescript
 import { createTestResult } from '@/app/lib/test';
-import { testResultToRow } from '@/app/lib/test/db/mapper';
 
-const testResult = createTestResult(...);
-const row = testResultToRow(testResult);
-// Save row to database
+const testResult = createTestResult(
+  config,
+  questions,
+  answers,
+  gradeResults,
+  startedAt,
+  submittedAt,
+  totalTimeSpentMs,
+  pausedTimeMs
+);
 ```
-
-## Next Steps
-
-1. Implement actual database connection (PostgreSQL, MySQL, etc.)
-2. Add authentication/user tracking
-3. Implement analytics endpoints
-4. Add test result retrieval and display
-5. Add statistics aggregation
