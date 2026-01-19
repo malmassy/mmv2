@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, unauthorizedResponse } from '../../../lib/admin/middleware';
 import { getAllTestResults, getUserTestResults, deleteTestResult } from '../../../lib/admin/services/adminService';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/tests - Get all test results
  */

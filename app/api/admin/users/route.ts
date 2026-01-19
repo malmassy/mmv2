@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, unauthorizedResponse } from '../../../lib/admin/middleware';
 import { getAllUsers, setUserAdminStatus } from '../../../lib/admin/services/adminService';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/users - Get all users
  */

@@ -6,6 +6,8 @@ import { prisma } from '../../lib/db/prisma';
 import type { TestResult } from '../../lib/test/types';
 import { testResultToPrismaInput, prismaToTestResult } from '../../lib/test/db/mapper';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/tests - Save a test result
  */

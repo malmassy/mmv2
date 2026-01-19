@@ -3,6 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findOrCreateUser, getUserByEmail, getUserById, updateUserName } from '../../lib/test/services/userService';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/users - Find or create a user
  */
