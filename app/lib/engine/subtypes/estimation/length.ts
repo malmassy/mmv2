@@ -1,5 +1,5 @@
 // app/lib/engine/subtypes/estimation/length.ts
-import type { GradeOptions, Question, QuestionSubtype } from '../../types';
+import type { GradeOptions, GradeResult, Question, QuestionSubtype } from '../../types';
 import { parseNumberLoose } from '../../utils/number';
 import { withinTolerance } from '../../utils/tolerance';
 import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';

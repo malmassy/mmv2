@@ -46,20 +46,24 @@ export async function getQuestionDifficultyStats() {
     by: ['subtype', 'parentType'],
     _count: {
       id: true,
+      isCorrect: true,
     },
     _avg: {
       score: true,
-      isCorrect: true,
     },
   });
   
-  return stats.map(stat => ({
-    subtype: stat.subtype,
-    parentType: stat.parentType,
-    totalAttempts: stat._count.id,
-    averageScore: stat._avg.score || 0,
-    successRate: stat._avg.isCorrect || 0,
-  }));
+  return stats.map(stat => {
+    const total = stat._count?.id || 0;
+    const correct = stat._count?.isCorrect || 0;
+    return {
+      subtype: stat.subtype,
+      parentType: stat.parentType,
+      totalAttempts: total,
+      averageScore: stat._avg?.score ?? 0,
+      successRate: total > 0 ? correct / total : 0,
+    };
+  });
 }
 
 /**

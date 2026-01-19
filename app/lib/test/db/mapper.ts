@@ -10,7 +10,7 @@ export function testResultToPrismaInput(
   result: TestResult
 ): Prisma.TestResultCreateInput {
   return {
-    userId: result.userId,
+    ...(result.userId ? { user: { connect: { id: result.userId } } } : {}),
     testId: result.testId,
     config: JSON.stringify(result.config),
     questions: JSON.stringify(result.questions),
@@ -91,7 +91,7 @@ export function prismaToTestResult(prismaResult: {
  */
 export function testResultToRow(result: TestResult): Omit<Prisma.TestResultCreateInput, 'questionAttempts'> {
   return {
-    userId: result.userId,
+    ...(result.userId ? { user: { connect: { id: result.userId } } } : {}),
     testId: result.testId,
     config: JSON.stringify(result.config),
     questions: JSON.stringify(result.questions),
@@ -109,6 +109,7 @@ export function testResultToRow(result: TestResult): Omit<Prisma.TestResultCreat
 
 export function rowToTestResult(row: {
   id: string;
+  userId: string | null;
   testId: string | null;
   config: string;
   questions: string;

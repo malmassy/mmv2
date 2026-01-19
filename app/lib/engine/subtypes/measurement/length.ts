@@ -1,5 +1,5 @@
 // app/lib/engine/subtypes/measurement/length.ts
-import type { GradeOptions, Question, QuestionSubtype } from '../../types';
+import type { GradeOptions, GradeResult, Question, QuestionSubtype } from '../../types';
 import { parseNumberLoose } from '../../utils/number';
 import { withinTolerance } from '../../utils/tolerance';
 import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';
@@ -62,8 +62,8 @@ export const length: QuestionSubtype = {
       correctAnswerDisplay: string;
     };
 
-    const parsed = parseNumberLoose(submittedAnswer);
-    if (!parsed || !Number.isFinite(parsed.value)) {
+    const n = parseNumberLoose(submittedAnswer);
+    if (n === null || !Number.isFinite(n)) {
       return {
         isCorrect: false,
         score: 0,
@@ -99,7 +99,7 @@ export const length: QuestionSubtype = {
     }
 
     // Check units (always enforced for measurement)
-    const parsedQuantity = parseQuantityLoose(submittedAnswer);
+    const parsedQuantity = parseQuantityLoose(submittedAnswer, n);
     if (opts.enforceUnits) {
       if (!parsedQuantity.unitRaw) {
         return {
@@ -144,7 +144,7 @@ export const length: QuestionSubtype = {
 
     // Tolerance: ±1 cm (since answers are rounded to nearest cm)
     const tolerance = 1.0;
-    const isWithinTolerance = withinTolerance(parsed.value, correctAnswer, { abs: tolerance });
+    const isWithinTolerance = withinTolerance(n, correctAnswer, { abs: tolerance });
 
     if (isWithinTolerance) {
       return {

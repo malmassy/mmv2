@@ -1,5 +1,5 @@
 // app/lib/engine/subtypes/estimation/commonObjects.ts
-import type { GradeOptions, Question, QuestionSubtype } from '../../types';
+import type { GradeOptions, GradeResult, Question, QuestionSubtype } from '../../types';
 import { parseNumberLoose } from '../../utils/number';
 import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';
 import { makeId } from '../../utils/id';

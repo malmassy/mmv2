@@ -52,16 +52,16 @@ export default function RulerMeasurement({ lengthMm, resolution, resolutionLabel
   const [isZoomed, setIsZoomed] = useState(false);
   const zoomFactor = isZoomed ? 2 : 1;
   
-  // Adjust pixels per mm based on zoom (when zoomed, double the resolution)
-  const effectivePixelsPerMm = pixelsPerMm * zoomFactor;
-  const effectiveObjectWidth = lengthMm * effectivePixelsPerMm;
-  const effectiveRulerWidthMm = Math.floor((canvasWidth - rulerZeroX - 20) / effectivePixelsPerMm);
-  
   // Canvas coordinate system: (0,0) is top-left of canvas
   // Ruler is positioned in the middle vertically, object can be above or below
   const rulerY = canvasHeight / 2; // Ruler center Y position
   const rulerPadding = 30; // Padding before zero mark
   const rulerZeroX = 20 + rulerPadding; // Ruler zero position (left edge + padding)
+  
+  // Adjust pixels per mm based on zoom (when zoomed, double the resolution)
+  const effectivePixelsPerMm = pixelsPerMm * zoomFactor;
+  const effectiveObjectWidth = lengthMm * effectivePixelsPerMm;
+  const effectiveRulerWidthMm = Math.floor((canvasWidth - rulerZeroX - 20) / effectivePixelsPerMm);
   
   // Object position in canvas coordinates (accounting for zoom)
   // Start object above ruler, offset to the left
