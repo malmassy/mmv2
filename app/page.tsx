@@ -69,6 +69,29 @@ export default function Home() {
             >
               Practice Mode
             </Link>
+
+            <Link
+              href="/simulation"
+              style={{
+                padding: '16px 24px',
+                borderRadius: 999,
+                fontWeight: 800,
+                cursor: 'pointer',
+                minWidth: 140,
+                fontSize: 16,
+                textDecoration: 'none',
+                textAlign: 'center',
+                display: 'inline-block',
+
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                border: '2px solid #ffffff',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                transition: 'all 120ms ease-out',
+              }}
+            >
+              Station timer
+            </Link>
           </div>
         </div>
       </section>

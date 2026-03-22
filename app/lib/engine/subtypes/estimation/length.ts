@@ -155,7 +155,7 @@ export const length: QuestionSubtype = {
 
     return {
       isCorrect: points > 0,
-      score: points > 0 ? 1 : 0,
+      score: points / 5, // Store points as normalized score (0-5 becomes 0-1)
       feedback,
       correctAnswerDisplay,
     };

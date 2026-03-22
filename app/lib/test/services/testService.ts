@@ -23,7 +23,7 @@ export function gradeTest(
   };
 
   const byId: Record<string, GradeResult> = {};
-  let correct = 0;
+  let totalPoints = 0;
 
   for (const q of questions) {
     const raw = (answers[q.id] ?? '').trim();
@@ -35,12 +35,26 @@ export function gradeTest(
     
     const res = st.grade(q, raw, gradeOpts);
     byId[q.id] = res;
-    if (res.isCorrect) correct++;
+    
+    // For estimation questions, use points (score * 5, where score is 0-1)
+    // For other questions, use isCorrect (0 or 1)
+    if (q.parentType === 'estimation') {
+      totalPoints += res.score * 5; // Convert normalized score back to points (0-5)
+    } else {
+      totalPoints += res.isCorrect ? 1 : 0;
+    }
   }
+
+  // Calculate total possible points
+  // Estimation questions: count * 5 points each
+  // Other questions: count * 1 point each
+  const estimationCount = questions.filter(q => q.parentType === 'estimation').length;
+  const otherCount = questions.length - estimationCount;
+  const totalPossible = estimationCount * 5 + otherCount;
 
   return {
     gradeById: byId,
-    score: { correct, total: questions.length },
+    score: { correct: totalPoints, total: totalPossible },
   };
 }
 

@@ -52,8 +52,7 @@ function TestSetupPage() {
   
   // Toggle states for each question type
   const [conversionEnabled, setConversionEnabled] = useState<boolean>(true);
-  const [estimationEnabled, setEstimationEnabled] = useState<boolean>(false);
-  const [measurementEnabled, setMeasurementEnabled] = useState<boolean>(false);
+  const [estimationEnabled, setEstimationEnabled] = useState<boolean>(true);
   
   // Conversion settings
   const [minutes, setMinutes] = useState<number>(10);
@@ -106,7 +105,7 @@ function TestSetupPage() {
   function start() {
   setError('');
 
-  console.log('[TestSetup] Start clicked', { conversionEnabled, estimationEnabled, measurementEnabled, minutes, testId });
+  console.log('[TestSetup] Start clicked', { conversionEnabled, estimationEnabled, minutes, testId });
 
   // Validate conversion if enabled
   if (conversionEnabled) {
@@ -486,63 +485,6 @@ function TestSetupPage() {
           )}
         </div>
 
-        <div
-          style={{
-            borderRadius: 12,
-            padding: 16,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.04)',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: measurementEnabled ? 16 : 0 }}>
-            <label 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-              onClick={(e) => {
-                e.preventDefault();
-                setMeasurementEnabled(!measurementEnabled);
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={measurementEnabled}
-                onChange={(e) => setMeasurementEnabled(e.target.checked)}
-                style={{ display: 'none' }}
-              />
-              <div
-                style={{
-                  width: 48,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: measurementEnabled ? '#4CAF50' : '#cccccc',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                }}
-              >
-                <div
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    backgroundColor: '#ffffff',
-                    position: 'absolute',
-                    top: 2,
-                    left: measurementEnabled ? 26 : 2,
-                    transition: 'left 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </div>
-            </label>
-            <span style={{ fontWeight: 700 }}>Measurement</span>
-          </div>
-
-          {measurementEnabled && (
-            <div style={{ fontSize: 14, opacity: 0.8 }}>
-              Measurement configuration coming soon.
-            </div>
-          )}
-        </div>
 
         {error ? (
           <div style={{ color: '#ffb4b4', fontWeight: 650 }}>{error}</div>

@@ -84,6 +84,16 @@ export default function TestSession({ config }: Props) {
   const [savedCode, setSavedCode] = useState<string | null>(null);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
+  // Estimation-specific state
+  const estimationQuestions = useMemo(() => questions.filter(q => q.parentType === 'estimation'), [questions]);
+  const hasEstimation = estimationQuestions.length > 0;
+  const [estimationCalibrationCompleted, setEstimationCalibrationCompleted] = useState(false);
+  const [currentEstimationQuestionIndex, setCurrentEstimationQuestionIndex] = useState(0);
+  const [expiredEstimationQuestionIndices, setExpiredEstimationQuestionIndices] = useState<Set<number>>(new Set());
+  const estimationQuestionStartedAtRef = useRef<number | null>(null);
+  const estimationTimePerQuestion = config.estimation?.timePerQuestionSeconds ?? 60;
+  const [estimationQuestionSecondsLeft, setEstimationQuestionSecondsLeft] = useState(estimationTimePerQuestion);
+
   // Create/restore session
   useEffect(() => {
     // When a new config is provided via URL, always generate a new test
@@ -154,11 +164,56 @@ export default function TestSession({ config }: Props) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [questions, answers, submitted, score, showResults, gradeById]);
 
-  // Timer ticking + auto-submit
+  // Estimation per-question timer
+  useEffect(() => {
+    if (!hasEstimation) return;
+    if (!estimationCalibrationCompleted) return;
+    if (submitted) return;
+    if (isPaused) return;
+    if (currentEstimationQuestionIndex >= estimationQuestions.length) return;
+
+    // Start timer for current question
+    if (estimationQuestionStartedAtRef.current === null) {
+      estimationQuestionStartedAtRef.current = Date.now();
+    }
+
+    const tick = () => {
+      if (!estimationQuestionStartedAtRef.current) return;
+      
+      const now = Date.now();
+      const elapsed = Math.floor((now - estimationQuestionStartedAtRef.current) / 1000);
+      const left = estimationTimePerQuestion - elapsed;
+
+      setEstimationQuestionSecondsLeft(Math.max(0, left));
+
+      if (left <= 0) {
+        // Time's up for this question - mark as expired and move to next
+        setExpiredEstimationQuestionIndices(prev => new Set([...prev, currentEstimationQuestionIndex]));
+        
+        if (currentEstimationQuestionIndex < estimationQuestions.length - 1) {
+          setCurrentEstimationQuestionIndex(prev => prev + 1);
+          estimationQuestionStartedAtRef.current = Date.now();
+          setEstimationQuestionSecondsLeft(estimationTimePerQuestion);
+        } else {
+          // All estimation questions done
+          estimationQuestionStartedAtRef.current = null;
+          setEstimationQuestionSecondsLeft(0);
+        }
+      }
+    };
+
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [hasEstimation, estimationCalibrationCompleted, submitted, isPaused, currentEstimationQuestionIndex, estimationQuestions.length, estimationTimePerQuestion]);
+
+  // Timer ticking + auto-submit (for non-estimation or after estimation)
   useEffect(() => {
     if (!startedAtRef.current) return;
     if (submitted) return;
     if (isPaused) return; // Don't tick when paused
+    // Skip main timer if we're in estimation phase and calibration not done
+    if (hasEstimation && !estimationCalibrationCompleted) return;
 
     const tick = () => {
       const now = Date.now();
@@ -179,7 +234,7 @@ export default function TestSession({ config }: Props) {
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitted, testSeconds, isPaused]);
+  }, [submitted, testSeconds, isPaused, hasEstimation, estimationCalibrationCompleted]);
 
   function setAnswer(questionId: string, value: string) {
     if (submitted) return;
@@ -280,6 +335,21 @@ export default function TestSession({ config }: Props) {
     }
   }
 
+  function handleCalibrationComplete() {
+    setEstimationCalibrationCompleted(true);
+    estimationQuestionStartedAtRef.current = Date.now();
+    setEstimationQuestionSecondsLeft(estimationTimePerQuestion);
+  }
+
+  function handleNextEstimationQuestion() {
+    if (currentEstimationQuestionIndex < estimationQuestions.length - 1) {
+      setExpiredEstimationQuestionIndices(prev => new Set([...prev, currentEstimationQuestionIndex]));
+      setCurrentEstimationQuestionIndex(prev => prev + 1);
+      estimationQuestionStartedAtRef.current = Date.now();
+      setEstimationQuestionSecondsLeft(estimationTimePerQuestion);
+    }
+  }
+
   function restartTest() {
     // If test is in progress (not submitted), show confirmation
     if (!submitted) {
@@ -308,12 +378,20 @@ export default function TestSession({ config }: Props) {
         <div className="test-timer-meta">
           <div className="test-timer-title">Test Mode</div>
           <div className="test-timer-subtitle">
-            {questions.length} question{questions.length !== 1 ? 's' : ''} • answer in any order • {Math.floor(testSeconds / 60)} minute{Math.floor(testSeconds / 60) !== 1 ? 's' : ''}
+            {hasEstimation && estimationCalibrationCompleted
+              ? `${estimationTimePerQuestion} seconds per station`
+              : `${questions.length} question${questions.length !== 1 ? 's' : ''} • answer in any order • ${Math.floor(testSeconds / 60)} minute${Math.floor(testSeconds / 60) !== 1 ? 's' : ''}`}
           </div>
         </div>
 
         <div className={clockClass} aria-label="Time remaining" title="Time remaining">
-          {submitted ? '0:00' : isPaused ? 'PAUSED' : formatMMSS(secondsLeft)}
+          {submitted 
+            ? '0:00' 
+            : isPaused 
+              ? 'PAUSED' 
+              : hasEstimation && estimationCalibrationCompleted && currentEstimationQuestionIndex < estimationQuestions.length
+                ? formatMMSS(estimationQuestionSecondsLeft)
+                : formatMMSS(secondsLeft)}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -436,6 +514,26 @@ export default function TestSession({ config }: Props) {
         </div>
       )}
 
+      {/* Estimation calibration - show first if estimation questions exist */}
+      {hasEstimation && !estimationCalibrationCompleted && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ padding: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <LengthEstimation 
+              lengthCm={10} 
+              onCalibrationComplete={handleCalibrationComplete}
+            />
+            <div style={{ marginTop: 16, padding: 12, background: 'rgba(255, 193, 7, 0.1)', borderRadius: 8, border: '1px solid rgba(255, 193, 7, 0.3)' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, color: '#ffc107' }}>
+                Calibration Required
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>
+                Please complete the calibration above before starting the estimation questions. Once calibrated, the questions will appear.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pause overlay */}
       {isPaused && !submitted && (
         <div
@@ -458,66 +556,114 @@ export default function TestSession({ config }: Props) {
       )}
 
       {/* All questions */}
-      {(!isPaused || submitted) && (
+      {(!isPaused || submitted) && (!hasEstimation || estimationCalibrationCompleted) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {questions.map((q, idx) => {
             const res = gradeById[q.id];
+            const isEstimation = q.parentType === 'estimation';
+            const estimationIndex = isEstimation ? estimationQuestions.findIndex(eq => eq.id === q.id) : -1;
+            const isCurrentEstimationQuestion = isEstimation && estimationIndex === currentEstimationQuestionIndex;
+            const isExpiredEstimationQuestion = isEstimation && expiredEstimationQuestionIndices.has(estimationIndex);
+            const showEstimationImage = isEstimation && isCurrentEstimationQuestion && !submitted;
 
             return (
-              <div
-                key={q.id}
-                id={`q-${q.id}`}
-                style={{
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: 14,
-                  padding: 12,
-                  background: 'rgba(255,255,255,0.03)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ fontWeight: 900 }}>Question {idx + 1}</div>
-                  <div style={{ opacity: 0.75, fontSize: 13 }}>
-                    {(answers[q.id] ?? '').trim() ? 'Answered' : 'Not answered'}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 8, opacity: 0.95, lineHeight: 1.35 }}>{q.prompt}</div>
-
-                <div style={{ marginTop: 10 }}>
-                  <input
-                    value={answers[q.id] ?? ''}
-                    onChange={(e) => setAnswer(q.id, e.target.value)}
-                    disabled={submitted}
-                    placeholder="Enter your answer…"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: 12,
-                      border: '1px solid rgba(255,255,255,0.14)',
-                      background: 'rgba(0,0,0,0.25)',
-                      color: 'white',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                {/* Results (after submit + toggled on) */}
-                {submitted && showResults && res && (
-                  <div className={`test-result ${res.isCorrect ? 'correct' : 'incorrect'}`} style={{ marginTop: 10 }}>
-                    <div style={{ fontWeight: 900 }}>{res.isCorrect ? 'Correct' : 'Incorrect'}</div>
-
-                    {res.correctAnswerDisplay && (
-                      <div style={{ marginTop: 4 }}>
-                        <span style={{ opacity: 0.8 }}>Correct answer: </span>
-                        <span style={{ fontWeight: 800 }}>
-                          {formatCorrectAnswerWithScientific(res.correctAnswerDisplay)}
-                        </span>
-                      </div>
+              <div key={q.id}>
+                {/* Estimation image - show above question if current */}
+                {isEstimation && showEstimationImage && !submitted && (
+                  <div style={{ marginBottom: 12, padding: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {q.subtype === 'estimation.length' && q.meta?.lengthCm && (
+                      <LengthEstimation lengthCm={q.meta.lengthCm} />
                     )}
-
-                    {res.feedback && <div style={{ marginTop: 6, opacity: 0.92 }}>{res.feedback}</div>}
+                    {q.subtype === 'estimation.commonObjects' && q.meta?.objectCategory && (
+                      <CommonObjectEstimation
+                        objectCategory={q.meta.objectCategory}
+                        objectType={q.meta.objectType}
+                        objectName={q.meta.objectName}
+                        measurementType={q.meta.measurementType}
+                        measurementLabel={q.meta.measurementLabel}
+                        coinDiameter={q.meta.coinDiameter}
+                        coinThickness={q.meta.coinThickness}
+                        batteryLength={q.meta.batteryLength}
+                        batteryDiameter={q.meta.batteryDiameter}
+                        imagePath={q.meta.imagePath}
+                      />
+                    )}
                   </div>
                 )}
+
+                <div
+                  id={`q-${q.id}`}
+                  style={{
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 14,
+                    padding: 12,
+                    background: 'rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                    <div style={{ fontWeight: 900 }}>Question {idx + 1}</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {isEstimation && isCurrentEstimationQuestion && !submitted && (
+                        <button
+                          onClick={handleNextEstimationQuestion}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            background: 'rgba(76, 175, 80, 0.2)',
+                            color: '#4CAF50',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Next Question
+                        </button>
+                      )}
+                      <div style={{ opacity: 0.75, fontSize: 13 }}>
+                        {(answers[q.id] ?? '').trim() ? 'Answered' : 'Not answered'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 8, opacity: 0.95, lineHeight: 1.35 }}>{q.prompt}</div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <input
+                      value={answers[q.id] ?? ''}
+                      onChange={(e) => setAnswer(q.id, e.target.value)}
+                      disabled={submitted}
+                      placeholder="Enter your answer…"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        border: '1px solid rgba(255,255,255,0.14)',
+                        background: 'rgba(0,0,0,0.25)',
+                        color: 'white',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  {/* Results (after submit + toggled on) */}
+                  {submitted && showResults && res && (
+                    <div className={`test-result ${res.isCorrect ? 'correct' : 'incorrect'}`} style={{ marginTop: 10 }}>
+                      <div style={{ fontWeight: 900 }}>{res.isCorrect ? 'Correct' : 'Incorrect'}</div>
+
+                      {res.correctAnswerDisplay && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ opacity: 0.8 }}>Correct answer: </span>
+                          <span style={{ fontWeight: 800 }}>
+                            {formatCorrectAnswerWithScientific(res.correctAnswerDisplay)}
+                          </span>
+                        </div>
+                      )}
+
+                      {res.feedback && <div style={{ marginTop: 6, opacity: 0.92 }}>{res.feedback}</div>}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

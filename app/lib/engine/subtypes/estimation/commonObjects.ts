@@ -3,6 +3,7 @@ import type { GradeOptions, GradeResult, Question, QuestionSubtype } from '../..
 import { parseNumberLoose } from '../../utils/number';
 import { parseMetricUnit, parseQuantityLoose } from '../../utils/units';
 import { makeId } from '../../utils/id';
+import { getRandomImageQuestion } from './imageQuestions';
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -17,45 +18,45 @@ type CoinType = 'penny' | 'nickel' | 'dime' | 'quarter';
 
 type CoinData = {
   name: string;
-  diameter: number; // mm
-  thickness: number; // mm
+  diameter: number; // cm
+  thickness: number; // cm
   mass: number; // g
-  circumference: number; // mm (calculated)
-  area: number; // mm² (calculated)
+  circumference: number; // cm (calculated)
+  area: number; // cm² (calculated)
 };
 
 const COINS: Record<CoinType, CoinData> = {
   penny: {
     name: 'Penny',
-    diameter: 19.05, // mm
-    thickness: 1.52, // mm
+    diameter: 1.905, // cm
+    thickness: 0.152, // cm
     mass: 2.5, // g
-    circumference: Math.PI * 19.05, // ~59.84 mm
-    area: Math.PI * (19.05 / 2) ** 2, // ~285.02 mm²
+    circumference: Math.PI * 1.905, // ~5.984 cm
+    area: Math.PI * (1.905 / 2) ** 2, // ~2.850 cm²
   },
   nickel: {
     name: 'Nickel',
-    diameter: 21.21, // mm
-    thickness: 1.95, // mm
+    diameter: 2.121, // cm
+    thickness: 0.195, // cm
     mass: 5.0, // g
-    circumference: Math.PI * 21.21, // ~66.64 mm
-    area: Math.PI * (21.21 / 2) ** 2, // ~353.34 mm²
+    circumference: Math.PI * 2.121, // ~6.664 cm
+    area: Math.PI * (2.121 / 2) ** 2, // ~3.533 cm²
   },
   dime: {
     name: 'Dime',
-    diameter: 17.91, // mm
-    thickness: 1.35, // mm
+    diameter: 1.791, // cm
+    thickness: 0.135, // cm
     mass: 2.268, // g
-    circumference: Math.PI * 17.91, // ~56.26 mm
-    area: Math.PI * (17.91 / 2) ** 2, // ~251.96 mm²
+    circumference: Math.PI * 1.791, // ~5.626 cm
+    area: Math.PI * (1.791 / 2) ** 2, // ~2.520 cm²
   },
   quarter: {
     name: 'Quarter',
-    diameter: 24.26, // mm
-    thickness: 1.75, // mm
+    diameter: 2.426, // cm
+    thickness: 0.175, // cm
     mass: 5.67, // g
-    circumference: Math.PI * 24.26, // ~76.22 mm
-    area: Math.PI * (24.26 / 2) ** 2, // ~462.23 mm²
+    circumference: Math.PI * 2.426, // ~7.622 cm
+    area: Math.PI * (2.426 / 2) ** 2, // ~4.622 cm²
   },
 };
 
@@ -64,45 +65,45 @@ type BatteryType = 'AA' | 'AAA' | 'C' | 'D';
 
 type BatteryData = {
   name: string;
-  length: number; // mm
-  diameter: number; // mm
-  circumference: number; // mm (calculated)
-  area: number; // mm² (calculated - cross-sectional area)
-  volume: number; // mm³ (calculated)
+  length: number; // cm
+  diameter: number; // cm
+  circumference: number; // cm (calculated)
+  area: number; // cm² (calculated - cross-sectional area)
+  volume: number; // cm³ (calculated)
 };
 
 const BATTERIES: Record<BatteryType, BatteryData> = {
   AA: {
     name: 'AA battery',
-    length: 50.5, // mm
-    diameter: 14.5, // mm
-    circumference: Math.PI * 14.5, // ~45.55 mm
-    area: Math.PI * (14.5 / 2) ** 2, // ~165.13 mm²
-    volume: Math.PI * (14.5 / 2) ** 2 * 50.5, // ~8339 mm³
+    length: 5.05, // cm
+    diameter: 1.45, // cm
+    circumference: Math.PI * 1.45, // ~4.555 cm
+    area: Math.PI * (1.45 / 2) ** 2, // ~1.651 cm²
+    volume: Math.PI * (1.45 / 2) ** 2 * 5.05, // ~8.339 cm³
   },
   AAA: {
     name: 'AAA battery',
-    length: 44.5, // mm
-    diameter: 10.5, // mm
-    circumference: Math.PI * 10.5, // ~32.99 mm
-    area: Math.PI * (10.5 / 2) ** 2, // ~86.59 mm²
-    volume: Math.PI * (10.5 / 2) ** 2 * 44.5, // ~3853 mm³
+    length: 4.45, // cm
+    diameter: 1.05, // cm
+    circumference: Math.PI * 1.05, // ~3.299 cm
+    area: Math.PI * (1.05 / 2) ** 2, // ~0.866 cm²
+    volume: Math.PI * (1.05 / 2) ** 2 * 4.45, // ~3.853 cm³
   },
   C: {
     name: 'C battery',
-    length: 50.0, // mm
-    diameter: 26.2, // mm
-    circumference: Math.PI * 26.2, // ~82.30 mm
-    area: Math.PI * (26.2 / 2) ** 2, // ~539.05 mm²
-    volume: Math.PI * (26.2 / 2) ** 2 * 50.0, // ~26952 mm³
+    length: 5.00, // cm
+    diameter: 2.62, // cm
+    circumference: Math.PI * 2.62, // ~8.230 cm
+    area: Math.PI * (2.62 / 2) ** 2, // ~5.390 cm²
+    volume: Math.PI * (2.62 / 2) ** 2 * 5.00, // ~26.952 cm³
   },
   D: {
     name: 'D battery',
-    length: 61.5, // mm
-    diameter: 34.2, // mm
-    circumference: Math.PI * 34.2, // ~107.43 mm
-    area: Math.PI * (34.2 / 2) ** 2, // ~918.68 mm²
-    volume: Math.PI * (34.2 / 2) ** 2 * 61.5, // ~56500 mm³
+    length: 6.15, // cm
+    diameter: 3.42, // cm
+    circumference: Math.PI * 3.42, // ~10.743 cm
+    area: Math.PI * (3.42 / 2) ** 2, // ~9.187 cm²
+    volume: Math.PI * (3.42 / 2) ** 2 * 6.15, // ~56.500 cm³
   },
 };
 
@@ -112,19 +113,19 @@ type ObjectType = 'coin' | 'battery';
 type ObjectData = CoinData | BatteryData;
 
 const COIN_MEASUREMENT_TYPES: { type: MeasurementType; label: string; unit: string }[] = [
-  { type: 'diameter', label: 'diameter', unit: 'mm' },
-  { type: 'circumference', label: 'circumference', unit: 'mm' },
-  { type: 'area', label: 'area', unit: 'mm²' },
-  { type: 'thickness', label: 'thickness', unit: 'mm' },
+  { type: 'diameter', label: 'diameter', unit: 'cm' },
+  { type: 'circumference', label: 'circumference', unit: 'cm' },
+  { type: 'area', label: 'area', unit: 'cm²' },
+  { type: 'thickness', label: 'thickness', unit: 'cm' },
   { type: 'mass', label: 'mass', unit: 'g' },
 ];
 
 const BATTERY_MEASUREMENT_TYPES: { type: MeasurementType; label: string; unit: string }[] = [
-  { type: 'length', label: 'length', unit: 'mm' },
-  { type: 'diameter', label: 'diameter', unit: 'mm' },
-  { type: 'circumference', label: 'circumference', unit: 'mm' },
-  { type: 'area', label: 'cross-sectional area', unit: 'mm²' },
-  { type: 'volume', label: 'volume', unit: 'mm³' },
+  { type: 'length', label: 'length', unit: 'cm' },
+  { type: 'diameter', label: 'diameter', unit: 'cm' },
+  { type: 'circumference', label: 'circumference', unit: 'cm' },
+  { type: 'area', label: 'cross-sectional area', unit: 'cm²' },
+  { type: 'volume', label: 'volume', unit: 'cm³' },
 ];
 
 export const commonObjects: QuestionSubtype = {
@@ -133,6 +134,61 @@ export const commonObjects: QuestionSubtype = {
   label: 'Estimation - Common Objects',
 
   generate(): Question {
+    // Check if we should use an image-based question (10% chance, or can be made configurable)
+    const useImageQuestion = Math.random() < 0.1; // 10% chance to use image question
+    const imageQuestion = useImageQuestion ? getRandomImageQuestion() : null;
+    
+    if (imageQuestion) {
+      // Return image-based question
+      const id = makeId();
+      
+      // Get coin data if it's a coin question
+      let coinData: any = {};
+      if (imageQuestion.objectCategory === 'coin' && imageQuestion.objectType) {
+        const coin = COINS[imageQuestion.objectType as keyof typeof COINS];
+        if (coin) {
+          coinData = {
+            coinDiameter: coin.diameter,
+            coinThickness: coin.thickness,
+          };
+        }
+      }
+      
+      // Get battery data if it's a battery question
+      let batteryData: any = {};
+      if (imageQuestion.objectCategory === 'battery' && imageQuestion.objectType) {
+        const battery = BATTERIES[imageQuestion.objectType as keyof typeof BATTERIES];
+        if (battery) {
+          batteryData = {
+            batteryLength: battery.length,
+            batteryDiameter: battery.diameter,
+          };
+        }
+      }
+      
+      return {
+        id,
+        parentType: 'estimation',
+        subtype: 'estimation.commonObjects',
+        prompt: imageQuestion.prompt,
+        meta: {
+          objectCategory: imageQuestion.objectCategory,
+          objectType: imageQuestion.objectType || '',
+          objectName: imageQuestion.objectName,
+          measurementType: imageQuestion.measurementType,
+          measurementLabel: imageQuestion.measurementLabel,
+          correctAnswer: imageQuestion.correctAnswer,
+          targetUnit: imageQuestion.targetUnit,
+          correctAnswerDisplay: imageQuestion.correctAnswerDisplay,
+          imagePath: imageQuestion.imagePath,
+          ...coinData,
+          ...batteryData,
+        },
+        createdAtMs: Date.now(),
+        expectedUnit: imageQuestion.targetUnit,
+      };
+    }
+
     // Randomly choose between coin and battery
     const objectCategory = pick(['coin', 'battery'] as ObjectType[]);
     
@@ -211,18 +267,21 @@ export const commonObjects: QuestionSubtype = {
 
     // Round to appropriate precision based on measurement type
     let roundedAnswer: number;
-    if (measurement.type === 'mass' || measurement.type === 'thickness') {
-      // Mass and thickness: round to 2 decimal places
+    if (measurement.type === 'mass') {
+      // Mass: round to 2 decimal places
       roundedAnswer = Math.round(correctAnswer * 100) / 100;
+    } else if (measurement.type === 'thickness') {
+      // Thickness: round to 3 decimal places (cm values are smaller)
+      roundedAnswer = Math.round(correctAnswer * 1000) / 1000;
     } else if (measurement.type === 'volume') {
-      // Volume: round to nearest integer (mm³ are large numbers)
-      roundedAnswer = Math.round(correctAnswer);
+      // Volume: round to 2 decimal places (cm³ values)
+      roundedAnswer = Math.round(correctAnswer * 100) / 100;
     } else if (measurement.type === 'diameter' || measurement.type === 'length') {
-      // Diameter and length: round to 1 decimal place
-      roundedAnswer = Math.round(correctAnswer * 10) / 10;
+      // Diameter and length: round to 2 decimal places
+      roundedAnswer = Math.round(correctAnswer * 100) / 100;
     } else {
-      // Circumference and area: round to 1 decimal place
-      roundedAnswer = Math.round(correctAnswer * 10) / 10;
+      // Circumference and area: round to 2 decimal places
+      roundedAnswer = Math.round(correctAnswer * 100) / 100;
     }
 
     const correctAnswerDisplay = `${roundedAnswer} ${targetUnit}`;
@@ -263,7 +322,7 @@ export const commonObjects: QuestionSubtype = {
       return {
         isCorrect: false,
         score: 0,
-        feedback: 'Could not parse your answer. Please enter a number with units (e.g., "19.1 mm").',
+        feedback: 'Could not parse your answer. Please enter a number with units (e.g., "1.91 cm").',
         correctAnswerDisplay,
       };
     }
@@ -334,7 +393,7 @@ export const commonObjects: QuestionSubtype = {
 
     return {
       isCorrect: points > 0,
-      score: points > 0 ? 1 : 0,
+      score: points / 5, // Store points as normalized score (0-5 becomes 0-1)
       feedback,
       correctAnswerDisplay,
     };

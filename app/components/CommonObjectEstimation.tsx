@@ -13,11 +13,13 @@ type CommonObjectEstimationProps = {
   measurementType: 'diameter' | 'circumference' | 'area' | 'thickness' | 'mass' | 'length' | 'volume';
   measurementLabel: string;
   // Coin-specific
-  coinDiameter?: number; // mm
-  coinThickness?: number; // mm
+  coinDiameter?: number; // cm
+  coinThickness?: number; // cm
   // Battery-specific
-  batteryLength?: number; // mm
-  batteryDiameter?: number; // mm
+  batteryLength?: number; // cm
+  batteryDiameter?: number; // cm
+  // Image-based questions
+  imagePath?: string; // Path to image file (e.g., '/estimation/aaa_battery_length.jpeg')
 };
 
 // US Coin data (must match the data in commonObjects.ts)
@@ -42,7 +44,77 @@ export default function CommonObjectEstimation({
   coinThickness,
   batteryLength,
   batteryDiameter,
+  imagePath,
 }: CommonObjectEstimationProps) {
+  // Determine which image to use
+  // Priority: 1) explicit imagePath, 2) coin/battery images if available
+  let finalImagePath: string | undefined = imagePath;
+  
+  if (!finalImagePath && objectCategory === 'coin') {
+    if (objectType === 'penny') {
+      finalImagePath = '/estimation/penny_heads.jpeg';
+    } else if (objectType === 'nickel') {
+      finalImagePath = '/estimation/nickel_heads.jpeg';
+    } else if (objectType === 'dime') {
+      finalImagePath = '/estimation/dime_heads.jpeg';
+    } else if (objectType === 'quarter') {
+      finalImagePath = '/estimation/quarter_heads.jpg';
+    }
+  } else if (!finalImagePath && objectCategory === 'battery') {
+    if (objectType === 'AA') {
+      finalImagePath = '/estimation/aa_battery_length.jpeg';
+    } else if (objectType === 'AAA') {
+      finalImagePath = '/estimation/aaa_battery_length.jpeg';
+    } else if (objectType === 'C') {
+      finalImagePath = '/estimation/c_battery_length.jpeg';
+    } else if (objectType === 'D') {
+      finalImagePath = '/estimation/d_battery_length.jpeg';
+    }
+  }
+  
+  // If we have an image path, show the image instead of generated graphics
+  if (finalImagePath && typeof finalImagePath === 'string' && finalImagePath.trim() !== '') {
+    return (
+      <div>
+        <div
+          style={{
+            padding: '30px',
+            background: 'white',
+            borderRadius: '8px',
+            border: '1px solid #ccc',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '200px',
+          }}
+        >
+          <img
+            src={finalImagePath}
+            alt={objectName}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '400px',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+        {(objectCategory === 'coin' || objectCategory === 'battery') && (
+          <div
+            style={{
+              marginTop: '12px',
+              fontSize: '13px',
+              color: '#666',
+              fontStyle: 'italic',
+              textAlign: 'center',
+            }}
+          >
+            Image not shown to scale, use your own knowledge of the object.
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Get pixels per cm (calibrated or estimated)
   const pxPerCm = getPixelsPerCm();
   
@@ -58,7 +130,7 @@ export default function CommonObjectEstimation({
     fillColor = coinColor.fill;
     strokeColor = coinColor.stroke;
     
-    const coinDiameterCm = (coinDiameter || 0) / 10;
+    const coinDiameterCm = coinDiameter || 0; // Already in cm
     displayWidthPx = cmToPixels(coinDiameterCm);
     isSideView = measurementType === 'thickness';
     displayHeightPx = isSideView ? cmToPixels(coinDiameterCm) * 0.1 : displayWidthPx;
@@ -67,8 +139,8 @@ export default function CommonObjectEstimation({
     fillColor = '#1a4d2e'; // Dark green
     strokeColor = '#0d2818';
     
-    const batteryLengthCm = (batteryLength || 0) / 10;
-    const batteryDiameterCm = (batteryDiameter || 0) / 10;
+    const batteryLengthCm = batteryLength || 0; // Already in cm
+    const batteryDiameterCm = batteryDiameter || 0; // Already in cm
     
     isSideView = measurementType === 'diameter' || measurementType === 'circumference' || measurementType === 'area';
     
